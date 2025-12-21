@@ -1,0 +1,550 @@
+---
+title: "ACM ACP"
+output: html_document
+date: "2025-12-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(readr)
+library(stringr)
+library(FactoMineR)
+library(factoextra)
+library(forcats)
+library(kableExtra)
+library(DT)
+library(ggplot2)
+library(tidyverse)
+library(corrplot)
+library(explor)
+library(cluster)
+
+```
+
+
+# 1. Import propre
+```{r}
+df <- read_csv2("les-francais-et-l-information-arcom-2024-base-anonymisee.csv",
+                locale = locale(encoding = "latin1"))
+```
+
+```{r}
+old_names <- c(
+  "RS1_R",            # sexe
+  "RS2C_RECODE_AG_R", # âge en classes
+  "INT1_R",           # Interet pour l'information
+  "INFOFIABLE_R",     # accès a infos fiable
+  "OP2_R1",           # Contribue le plus faire une opinion sur un sujet
+  "INFLUENCE_R",      # Freq avis personnel sur actu
+  "RS3_R",            # Situation professionelle
+  "RS5_R",            # Niveau d'étude
+  "POIDS03",
+  "RSINFO_1_LR_R_1"
+)
+```
+
+
+```{r}
+new_names <- c(
+  "sexe",
+  "age_cat",
+  "interet_info",
+  "info_fiable",
+  "opinion_sujet",
+  "avis_actu",
+  "situa_pro",
+  "niveau_etude",
+  "poids",
+  "reseaux_sociaux"
+)
+```
+
+
+
+```{r}
+present_old <- old_names[old_names %in% names(df)]
+present_new <- new_names[old_names %in% names(df)]
+```
+
+
+```{r}
+rename_map <- setNames(present_new, present_old)
+
+```
+
+```{r}
+df_clean <- df %>%
+  select(all_of(present_old))
+```
+
+```{r}
+names(df_clean) <- present_new
+```
+
+```{r}
+names(df_clean)
+
+```
+
+```{r}
+vars_quali <- c("sexe", "age_cat", "opinion_sujet",
+                "avis_actu", "situa_pro", "niveau_etude","info_fiable","interet_info")
+```
+
+
+```{r}
+vars_quanti <- c("poids")
+```
+
+```{r}
+vars_quali_sup <- c("interet_info", "niveau_etude", "situa_pro")
+```
+
+```{r}
+vars_quanti_sup <- "poids"
+```
+
+
+
+```{r}
+df_clean <- df_clean %>%
+  mutate(
+    across(any_of(vars_quali), as.factor),
+    poids = if ("poids" %in% names(.)) as.numeric(stringr::str_replace(poids, ",", ".")) else NA_real_,
+    interet_info = if ("interet_info" %in% names(.)) as.numeric(interet_info) else NA_real_
+  )
+```
+
+
+```{r}
+vars_actives <- intersect(
+  c("sexe", "age_cat", "opinion_sujet", "avis_actu", "info_fiable"),
+  names(df_clean)
+)
+```
+
+
+```{r}
+df_clean <- df_clean %>%
+  filter(across(all_of(vars_actives), ~ !is.na(.)))
+```
+
+
+# Regroupement de l'âge
+```{r}
+df_clean$age_cat <- fct_collapse(df_clean$age_cat,
+  Jeunes  = c("1", "2"),
+  Adultes = c("3", "4"),
+  Matures = c("5"),
+  Seniors = c("6", "7")
+)
+```
+
+
+
+```{r}
+df_clean <- df_clean %>%
+  filter(across(all_of(vars_actives), ~ !is.na(.)))
+```
+
+
+```{r}
+df_clean$sexe <- recode_factor(df_clean$sexe,
+                               "1" = "Homme",
+                               "2" = "Femme")
+```
+
+```{r}
+df_clean$interet_info <- recode_factor(
+  df_clean$interet_info,
+  "1" = "Très intéressé",
+  "2" = "Assez intéressé",
+  "3" = "Peu intéressé",
+  "4" = "Pas du tout intéressé"
+)
+```
+
+```{r}
+df_clean$info_fiable <- recode_factor(
+  df_clean$info_fiable,
+  "1" = "Très facile",
+  "2" = "Plutôt facile",
+  "3" = "Plutôt difficile",
+  "4" = "Très difficile"
+)
+```
+
+```{r}
+df_clean$opinion_sujet <- recode_factor(
+  df_clean$opinion_sujet,
+  "1" = "Médias traditionnels (radio, TV, presse)",
+  "2" = "Réseaux sociaux / plateformes vidéo",
+  "3" = "Discussions avec inconnus (vie réelle ou Internet)",
+  "4" = "Échanges avec proches (famille, amis, collègues…)",
+  "5" = "Aucun"
+)
+```
+
+
+```{r}
+df_clean$situa_pro <- recode_factor(
+  df_clean$situa_pro,
+  "1" = "Actif / Active (emploi, congés ou arrêt)",
+  "2" = "Chômeur.se ayant déjà travaillé",
+  "3" = "Chômeur.se recherchant un premier emploi",
+  "4" = "Étudiant·e",
+  "5" = "Personne au foyer",
+  "6" = "Retraité·e",
+  "7" = "Autre inactif·inactive (invalide, rentier…)",
+  "8" = "NSP / Ne souhaite pas répondre"
+)
+```
+
+```{r}
+df_clean$niveau_etude <- recode_factor(
+  df_clean$niveau_etude,
+  `1` = "Niveau primaire",
+  `2` = "Secondaire (6e à 3e)",
+  `3` = "Secondaire (2nde à Terminale)",
+  `4` = "Technique court (CAP, BEP)",
+  `5` = "Baccalauréat / Bac pro / Brevet professionnel",
+  `6` = "Technique supérieur (BTS, DUT)",
+  `7` = "Supérieur 1er cycle (DEUG, DEUST, Licence)",
+  `8` = "Supérieur 2nd cycle (DEA, DESS, Maîtrise, Master)",
+  `9` = "Supérieur 3e cycle (Doctorat)"
+)
+```
+
+
+
+
+
+```{r}
+str(df_clean)
+summary(df_clean)
+```
+
+
+```{r}
+res_mca <- MCA(
+  df_clean,   
+  quali.sup = c(
+    which(names(df_clean) == "niveau_etude"),
+    which(names(df_clean) == "interet_info"),
+    which(names(df_clean) == "situa_pro")
+  ),
+  quanti.sup = c(
+    which(names(df_clean) == "poids")
+  ),
+  graph = FALSE
+)
+```
+
+
+
+#Indiviudal - MCA
+```{r}
+fviz_mca_ind(res_mca,
+             geom = "point",
+             label = "none",
+             palette = "Dark2",
+             pointsize = 1.5,
+             alpha = 0.5)
+```
+
+#Variables categories - MCA
+```{r}
+fviz_mca_var(res_mca,
+             repel = TRUE,
+             col.var = "#2E86C1",
+             alpha.var = 0.8,
+             labelsize = 4)
+```
+
+
+#Pourcentage de variance expliquée
+```{r}
+fviz_screeplot(res_mca,
+               addlabels = TRUE,
+               barfill = "#9b2242",
+               barcolor = "black") +
+  ggtitle("Percentage of explained variances")
+```
+
+#Quantitative Variables - MCA
+```{r}
+fviz_mca_var(res_mca,
+             choice = "quanti.sup",
+             col.quanti.sup = "blue",
+             repel = TRUE,
+             axes = c(1, 2)
+)
+
+fviz_mca_var(res_mca,
+             choice = "quanti.sup",
+             col.quanti.sup = "blue",
+             repel = TRUE,
+             axes = c(3, 4)
+)
+```
+
+#Contribution des variables de Dim 1
+```{r}
+fviz_contrib(res_mca,
+             choice = "var",
+             axes = 1,
+             top = 15,
+             col = "#9b2242") +
+  ggtitle("Contribution of variables to Dim–1")
+```
+#Contribution des variables de Dim 2
+```{r}
+fviz_contrib(res_mca,
+             choice = "var",
+             axes = 2,
+             top = 15,
+             col = "#9b2242") +
+  ggtitle("Contribution of variables to Dim–2")
+```
+
+#Tableau des contributions des variables
+```{r}
+res_mca$var$contrib |> round(2) |> datatable()
+```
+
+
+#Indivudals - MCA (Habillage : Sexe)
+```{r}
+fviz_mca_ind(res_mca,
+             geom = "point",
+             habillage = "sexe",
+             palette = c("#e74c3c", "#3498db"),
+             addEllipses = TRUE,
+             label = "none",
+             alpha = 0.7) +
+  ggtitle("Individuals – MCA (Sexe)")
+```
+
+#ACM-Indivuduels (Habillage : Age)
+```{r}
+fviz_mca_ind(res_mca,
+             geom = "point",
+             habillage = "age_cat",
+             palette = "Dark2",
+             addEllipses = TRUE,
+             label = "none",
+             alpha = 0.7) +
+  ggtitle("Individuals – MCA (Age Categories)")
+```
+
+#Individuals – MCA (Habillage : Avis Actu)
+```{r}
+fviz_mca_ind(res_mca,
+             geom = "point",
+             habillage = "avis_actu",
+             palette = "Dark2",
+             addEllipses = TRUE,
+             label = "none",
+             alpha = 0.7) +
+  ggtitle("Individuals – MCA (Avis-Actu)")
+```
+
+#Individuals – MCA (Habillage : Info Fiable)
+```{r}
+fviz_mca_ind(res_mca,
+             geom = "point",
+             habillage ="info_fiable",
+             palette = "Dark2",
+             addEllipses = TRUE,
+             label = "none",
+             alpha = 0.7) +
+  ggtitle("Individuals – MCA (Info fiable)")
+```
+
+#Individuals – MCA (Habillage : Opinion Sujet)
+```{r}
+fviz_mca_ind(res_mca,
+             geom = "point",
+             habillage ="opinion_sujet",
+             palette = "Dark2",
+             addEllipses = TRUE,
+             label = "none",
+             alpha = 0.7) +
+  ggtitle("Individuals – MCA (Opinion sujet)")
+```
+
+#Classification
+
+```{r}
+coord <- res_mca$ind$coord
+
+inertie_between <- function(k) {
+  km <- kmeans(coord, centers = k, nstart = 20)
+  km$betweenss
+}
+
+k_values <- 1:10
+between <- sapply(k_values, inertie_between)
+gain_abs <- c(NA, diff(between))
+
+df_gain <- data.frame(
+  k = k_values,
+  gain = gain_abs
+)
+```
+
+```{r}
+ggplot(df_gain %>% filter(k > 1), aes(x = k, y = gain)) +
+  geom_col(fill = "steelblue") +
+  geom_text(aes(label = round(gain, 1)), vjust = -0.5) +
+  theme_minimal() +
+  labs(
+    title = "Gain d'inertie inter-classe en fonction de k",
+    x = "Nombre de clusters (k)",
+    y = "Gain d'inertie inter-classe"
+  )
+```
+
+```{r}
+X <- res_mca$ind$coord
+```
+
+
+```{r}
+set.seed(123)
+sample_size <- min(1000, nrow(X))  # max 1000 mais pas plus que le dataset
+sub_k <- X[sample(1:nrow(X), size = sample_size), ]
+```
+
+
+```{r}
+fviz_nbclust(sub_k, kmeans, method = "wss") +
+  ggtitle("Méthode du coude (WSS) – Sous-échantillon")
+```
+```{r}
+fviz_nbclust(sub_k, kmeans, method = "silhouette") +
+  ggtitle("Indice de silhouette – Sous-échantillon")
+
+```
+
+
+
+```{r}
+res_hcpc <- HCPC(res_mca, graph = FALSE, consol = TRUE, nb.clust =6)
+```
+
+```{r}
+fviz_dend(res_hcpc, cex = 0.3,
+          main = "Clustering with Ward method")
+```
+
+```{r}
+fviz_cluster(
+  res_hcpc,
+  geom = "point",
+  show.clust.cent = TRUE,
+  ellipse.type = "convex",
+  repel = TRUE,
+  palette = "Dark2",
+  ggtheme = theme_minimal(),
+  alpha = 0.6
+)
+
+```
+
+
+```{r}
+res_hcpc$desc.axes$quanti$`1` %>%
+  round(3) %>%
+  kable("html") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped")
+```
+
+
+### ACP
+
+```{r}
+data <- read.csv(file = "ina-barometre-jt-tv-donnees-quotidiennes-2000-2020-nbre-sujets-durees-202410.csv",
+                 sep = ";",
+                 header = FALSE,
+                 fileEncoding = "Latin1")
+data <- data[, -c(3, 6)]
+```
+
+```{r}
+colnames(data) <- c("date", "chaine", "theme", "nombre_de_programme")
+```
+
+```{r}
+data_wide <- data %>%
+  pivot_wider(names_from = theme, values_from = nombre_de_programme, values_fill = 0)
+```
+
+```{r}
+data_acp <- data_wide %>% select(-date, -chaine)
+row.names(data_acp) <- paste(data_wide$date, data_wide$chaine, sep = "_")
+```
+
+```{r}
+chaine_vect <- data_wide$chaine
+chaine_vect <- as.factor(data_wide$chaine)
+```
+
+```{r}
+res.acp <- PCA(data_acp, scale.unit = TRUE, graph = FALSE)
+```
+
+```{r}
+fviz_pca_var(res.acp, col.var = "contrib", repel = TRUE)
+```
+
+```{r}
+fviz_pca_ind(res.acp,
+             label = "none",
+             habillage = chaine_vect,
+             addEllipses = TRUE,
+             palette = "jco") 
+```
+
+```{r}
+fviz_pca_ind(res.acp,
+             label = "var",
+             col.ind = "cos2",
+             repel = TRUE)
+```
+
+```{r}
+fviz_screeplot(res.acp)
+```
+
+
+```{r}
+res.acp$eig |> round(2) |> kable()
+```
+
+
+```{r}
+fviz_pca_contrib(res.acp,
+                 choice = "var",
+                 axes = 1)
+```
+
+```{r}
+fviz_pca_contrib(res.acp,
+                 choice = "var",
+                 axes = 2)
+```
+
+```{r}
+fviz_pca_contrib(res.acp,
+                 choice = "var",
+                 axes = 3)
+```
+
+
+
+

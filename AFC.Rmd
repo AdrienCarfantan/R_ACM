@@ -1,0 +1,304 @@
+---
+title: "AFC"
+output: html_document
+date: "2025-12-21"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(readr)
+library(stringr)
+library(FactoMineR)
+library(factoextra)
+library(forcats)
+library(kableExtra)
+library(DT)
+library(ggplot2)
+library(tidyverse)
+library(corrplot)
+library(explor)
+library(cluster)
+
+```
+
+
+# 1. Import propre
+```{r}
+df <- read_csv2("les-francais-et-l-information-arcom-2024-base-anonymisee.csv",
+                locale = locale(encoding = "latin1"))
+```
+
+```{r}
+old_names <- c(
+  "RS1_R",            # sexe
+  "RS2C_RECODE_AG_R", # âge en classes
+  "INT1_R",           # Interet pour l'information
+  "INFOFIABLE_R",     # accès a infos fiable
+  "OP2_R1",           # Contribue le plus faire une opinion sur un sujet
+  "INFLUENCE_R",      # Freq avis personnel sur actu
+  "RS3_R",            # Situation professionelle
+  "RS5_R",            # Niveau d'étude
+  "POIDS03",
+  "RSINFO_1_LR_R_1"
+)
+```
+
+
+```{r}
+new_names <- c(
+  "sexe",
+  "age_cat",
+  "interet_info",
+  "info_fiable",
+  "opinion_sujet",
+  "avis_actu",
+  "situa_pro",
+  "niveau_etude",
+  "poids",
+  "reseaux_sociaux"
+)
+```
+
+
+
+```{r}
+present_old <- old_names[old_names %in% names(df)]
+present_new <- new_names[old_names %in% names(df)]
+```
+
+
+```{r}
+rename_map <- setNames(present_new, present_old)
+
+```
+
+```{r}
+df_clean <- df %>%
+  select(all_of(present_old))
+```
+
+```{r}
+names(df_clean) <- present_new
+```
+
+```{r}
+names(df_clean)
+
+```
+
+```{r}
+vars_quali <- c("sexe", "age_cat", "opinion_sujet",
+                "avis_actu", "situa_pro", "niveau_etude","info_fiable","interet_info")
+```
+
+
+```{r}
+vars_quanti <- c("poids")
+```
+
+```{r}
+vars_quali_sup <- c("interet_info", "niveau_etude", "situa_pro")
+```
+
+```{r}
+vars_quanti_sup <- "poids"
+```
+
+
+
+```{r}
+df_clean <- df_clean %>%
+  mutate(
+    across(any_of(vars_quali), as.factor),
+    poids = if ("poids" %in% names(.)) as.numeric(stringr::str_replace(poids, ",", ".")) else NA_real_,
+    interet_info = if ("interet_info" %in% names(.)) as.numeric(interet_info) else NA_real_
+  )
+```
+
+
+```{r}
+vars_actives <- intersect(
+  c("sexe", "age_cat", "opinion_sujet", "avis_actu", "info_fiable"),
+  names(df_clean)
+)
+```
+
+
+```{r}
+df_clean <- df_clean %>%
+  filter(across(all_of(vars_actives), ~ !is.na(.)))
+```
+
+
+# Regroupement de l'âge
+```{r}
+df_clean$age_cat <- fct_collapse(df_clean$age_cat,
+  Jeunes  = c("1", "2"),
+  Adultes = c("3", "4"),
+  Matures = c("5"),
+  Seniors = c("6", "7")
+)
+```
+
+
+
+```{r}
+df_clean <- df_clean %>%
+  filter(across(all_of(vars_actives), ~ !is.na(.)))
+```
+
+
+```{r}
+df_clean$sexe <- recode_factor(df_clean$sexe,
+                               "1" = "Homme",
+                               "2" = "Femme")
+```
+
+```{r}
+df_clean$interet_info <- recode_factor(
+  df_clean$interet_info,
+  "1" = "Très intéressé",
+  "2" = "Assez intéressé",
+  "3" = "Peu intéressé",
+  "4" = "Pas du tout intéressé"
+)
+```
+
+```{r}
+df_clean$info_fiable <- recode_factor(
+  df_clean$info_fiable,
+  "1" = "Très facile",
+  "2" = "Plutôt facile",
+  "3" = "Plutôt difficile",
+  "4" = "Très difficile"
+)
+```
+
+```{r}
+df_clean$opinion_sujet <- recode_factor(
+  df_clean$opinion_sujet,
+  "1" = "Médias traditionnels (radio, TV, presse)",
+  "2" = "Réseaux sociaux / plateformes vidéo",
+  "3" = "Discussions avec inconnus (vie réelle ou Internet)",
+  "4" = "Échanges avec proches (famille, amis, collègues…)",
+  "5" = "Aucun"
+)
+```
+
+
+```{r}
+df_clean$situa_pro <- recode_factor(
+  df_clean$situa_pro,
+  "1" = "Actif / Active (emploi, congés ou arrêt)",
+  "2" = "Chômeur.se ayant déjà travaillé",
+  "3" = "Chômeur.se recherchant un premier emploi",
+  "4" = "Étudiant·e",
+  "5" = "Personne au foyer",
+  "6" = "Retraité·e",
+  "7" = "Autre inactif·inactive (invalide, rentier…)",
+  "8" = "NSP / Ne souhaite pas répondre"
+)
+```
+
+```{r}
+df_clean$niveau_etude <- recode_factor(
+  df_clean$niveau_etude,
+  `1` = "Niveau primaire",
+  `2` = "Secondaire (6e à 3e)",
+  `3` = "Secondaire (2nde à Terminale)",
+  `4` = "Technique court (CAP, BEP)",
+  `5` = "Baccalauréat / Bac pro / Brevet professionnel",
+  `6` = "Technique supérieur (BTS, DUT)",
+  `7` = "Supérieur 1er cycle (DEUG, DEUST, Licence)",
+  `8` = "Supérieur 2nd cycle (DEA, DESS, Maîtrise, Master)",
+  `9` = "Supérieur 3e cycle (Doctorat)"
+)
+```
+
+
+```{r}
+str(df_clean)
+summary(df_clean)
+```
+
+
+
+
+
+
+### AFC 
+
+
+```{r}
+table_age_reseau <- table(df_clean$age_cat, df_clean$reseaux_sociaux)
+```
+  
+```{r}
+colnames(table_age_reseau) <- c("Facebook", "Instagram", "X(anciennement Twitter)","TikTok","Snapchat","LinkedIn","WhatsApp","Telegram","Youtube", "Twitch", "Discord", "Autre", "Aucun")
+```  
+
+```{r}
+table_age_reseau <- table_age_reseau[, -c(8, 10, 11, 12)]
+```
+  
+```{r}
+kable(table_age_reseau)
+```
+
+```{r}
+chisq.test(table_age_reseau)
+```
+
+
+
+```{r}
+res_afc <- CA(table_age_reseau, graph = FALSE)
+```
+
+```{r}
+fviz_screeplot(res_afc)
+```
+
+```{r}
+res_afc$eig |> round(2) |> kable()
+``` 
+
+
+```{r}
+fviz_ca_biplot(res_afc,
+               repel = TRUE,          # Évite le chevauchement des labels
+               col.row = "steelblue", # Couleur des chaînes
+               col.col = "red")       # Couleur des variables (hommes/femmes/musique)
+```
+
+
+
+```{r}
+fviz_contrib(res_afc, choice = "row", axes = 1)
+```
+```{r}
+fviz_contrib(res_afc, choice = "row", axes = 2)
+```
+
+```{r}
+fviz_contrib(res_afc, choice = "col", axes = 1)
+```
+
+```{r}
+fviz_contrib(res_afc, choice = "col", axes = 2)
+```
+
+
+```{r}
+fviz_ca_row(res_afc, col.row = "blue", title = "Individus (lignes)")
+```
+
+
+```{r}
+fviz_ca_col(res_afc, repel = TRUE, col.col = "red", title = "Variables (colonnes)")
+```
