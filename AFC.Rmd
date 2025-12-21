@@ -4,7 +4,6 @@ output: html_document
 date: "2025-12-21"
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -138,10 +137,13 @@ df_clean <- df_clean %>%
 # Regroupement de l'âge
 ```{r}
 df_clean$age_cat <- fct_collapse(df_clean$age_cat,
-  Jeunes  = c("1", "2"),
-  Adultes = c("3", "4"),
-  Matures = c("5"),
-  Seniors = c("6", "7")
+                                 Tres_jeune = c("1"),
+                                 Jeunes  = c("2"),
+                                 Jeune_adulte = c("3"),
+                                 Adultes = c("4"),
+                                 Matures = c("5"),
+                                 Seniors = c("6"),
+                                 Personne_agee = c("7")
 )
 ```
 
