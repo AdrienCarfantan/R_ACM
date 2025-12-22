@@ -1,5 +1,5 @@
 ---
-title: "ACM ACP"
+title: "ACM"
 output: html_document
 date: "2025-12-21"
 ---
@@ -22,7 +22,6 @@ library(tidyverse)
 library(corrplot)
 library(explor)
 library(cluster)
-
 ```
 
 
@@ -465,86 +464,7 @@ res_hcpc$desc.axes$quanti$`1` %>%
 ```
 
 
-### ACP
-
-```{r}
-data <- read.csv(file = "ina-barometre-jt-tv-donnees-quotidiennes-2000-2020-nbre-sujets-durees-202410.csv",
-                 sep = ";",
-                 header = FALSE,
-                 fileEncoding = "Latin1")
-data <- data[, -c(3, 6)]
-```
-
-```{r}
-colnames(data) <- c("date", "chaine", "theme", "nombre_de_programme")
-```
-
-```{r}
-data_wide <- data %>%
-  pivot_wider(names_from = theme, values_from = nombre_de_programme, values_fill = 0)
-```
-
-```{r}
-data_acp <- data_wide %>% select(-date, -chaine)
-row.names(data_acp) <- paste(data_wide$date, data_wide$chaine, sep = "_")
-```
-
-```{r}
-chaine_vect <- data_wide$chaine
-chaine_vect <- as.factor(data_wide$chaine)
-```
-
-```{r}
-res.acp <- PCA(data_acp, scale.unit = TRUE, graph = FALSE)
-```
-
-```{r}
-fviz_pca_var(res.acp, col.var = "contrib", repel = TRUE)
-```
-
-```{r}
-fviz_pca_ind(res.acp,
-             label = "none",
-             habillage = chaine_vect,
-             addEllipses = TRUE,
-             palette = "jco") 
-```
-
-```{r}
-fviz_pca_ind(res.acp,
-             label = "var",
-             col.ind = "cos2",
-             repel = TRUE)
-```
-
-```{r}
-fviz_screeplot(res.acp)
-```
-
-
-```{r}
-res.acp$eig |> round(2) |> kable()
-```
-
-
-```{r}
-fviz_pca_contrib(res.acp,
-                 choice = "var",
-                 axes = 1)
-```
-
-```{r}
-fviz_pca_contrib(res.acp,
-                 choice = "var",
-                 axes = 2)
-```
-
-```{r}
-fviz_pca_contrib(res.acp,
-                 choice = "var",
-                 axes = 3)
-```
-
+g
 
 
 

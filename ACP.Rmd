@@ -1,0 +1,109 @@
+---
+title: "ACP"
+output: html_document
+date: "2025-12-22"
+---
+
+```{r}
+library(dplyr)
+library(readr)
+library(stringr)
+library(FactoMineR)
+library(factoextra)
+library(forcats)
+library(kableExtra)
+library(DT)
+library(ggplot2)
+library(tidyverse)
+library(corrplot)
+library(explor)
+library(cluster)
+```
+
+### ACP
+
+```{r}
+data <- read.csv(file = "ina-barometre-jt-tv-donnees-quotidiennes-2000-2020-nbre-sujets-durees-202410.csv",
+                 sep = ";",
+                 header = FALSE,
+                 fileEncoding = "Latin1")
+data <- data[, -c(1, 3, 6)]
+```
+
+```{r}
+colnames(data) <- c("chaine", "theme", "nombre_de_programme")
+```
+
+```{r}
+data_clean <- data |> 
+  group_by(chaine, theme) |> 
+  summarise(nombre_de_programme = sum(nombre_de_programme), .groups = "drop")
+```
+
+```{r}
+data_transpose <- data_clean |> 
+  pivot_wider(names_from = chaine, values_from = nombre_de_programme, values_fill = 0)
+```
+
+```{r}
+data_transpose <- as.data.frame(data_transpose)
+rownames(data_transpose) <- as.character(data_transpose$theme)
+data_transpose <- data_transpose[,-1]
+```
+
+```{r}
+resacp <- PCA(data_transpose, scale.unit = TRUE, graph = FALSE)
+```
+
+```{r}
+fviz_pca_var(resacp, repel = TRUE)
+```
+
+```{r}
+fviz_pca_ind(resacp,
+             repel = TRUE) 
+```
+
+```{r}
+fviz_pca_ind(resacp,
+             col.ind = "cos2",
+             repel = TRUE)
+```
+
+```{r}
+fviz_screeplot(resacp)
+```
+
+
+```{r}
+resacp$eig |> round(2) |> kable()
+```
+
+
+```{r}
+fviz_pca_contrib(resacp,
+                 choice = "var",
+                 axes = 1)
+```
+
+```{r}
+fviz_pca_contrib(resacp,
+                 choice = "var",
+                 axes = 2)
+```
+
+
+```{r}
+fviz_pca_contrib(resacp,
+                 choice = "ind",
+                 axes = 1)
+```
+
+```{r}
+fviz_pca_contrib(resacp,
+                 choice = "ind",
+                 axes = 2)
+```
+
+
+
