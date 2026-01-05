@@ -4,3 +4,13 @@
 .Ruserdata
 *.csv
 *.xlsx
+*.pdf
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.tex
+ACP_files/
