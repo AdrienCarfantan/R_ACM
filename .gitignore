@@ -2,9 +2,11 @@
 .Rhistory
 .RData
 .Ruserdata
+*.png
 *.csv
 *.xlsx
 *.pdf
+!Latex.pdf
 *.aux
 *.log
 *.out
@@ -14,3 +16,5 @@
 *.synctex.gz
 *.tex
 ACP_files/
+ACM_files/
+AFC_files/

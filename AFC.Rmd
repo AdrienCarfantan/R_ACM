@@ -37,7 +37,7 @@ library(cluster)
 
 # 1. Import propre
 ```{r}
-df <- read_csv2("les-francais-et-l-information-arcom-2024-base-anonymisee.csv",
+df2 <- read_csv2("les-francais-et-l-information-arcom-2024-base-anonymisee.csv",
                 locale = locale(encoding = "latin1"))
 ```
 
@@ -75,8 +75,8 @@ new_names <- c(
 
 
 ```{r}
-present_old <- old_names[old_names %in% names(df)]
-present_new <- new_names[old_names %in% names(df)]
+present_old <- old_names[old_names %in% names(df2)]
+present_new <- new_names[old_names %in% names(df2)]
 ```
 
 
@@ -86,16 +86,16 @@ rename_map <- setNames(present_new, present_old)
 ```
 
 ```{r}
-df_clean <- df %>%
+df2_clean <- df2 %>%
   select(all_of(present_old))
 ```
 
 ```{r}
-names(df_clean) <- present_new
+names(df2_clean) <- present_new
 ```
 
 ```{r}
-names(df_clean)
+names(df2_clean)
 
 ```
 
@@ -120,7 +120,7 @@ vars_quanti_sup <- "poids"
 
 
 ```{r}
-df_clean <- df_clean %>%
+df2_clean <- df2_clean %>%
   mutate(
     across(any_of(vars_quali), as.factor),
     poids = if ("poids" %in% names(.)) as.numeric(stringr::str_replace(poids, ",", ".")) else NA_real_,
@@ -132,47 +132,47 @@ df_clean <- df_clean %>%
 ```{r}
 vars_actives <- intersect(
   c("sexe", "age_cat", "opinion_sujet", "avis_actu", "info_fiable"),
-  names(df_clean)
+  names(df2_clean)
 )
 ```
 
 
 ```{r}
-df_clean <- df_clean %>%
+df2_clean <- df2_clean %>%
   filter(across(all_of(vars_actives), ~ !is.na(.)))
 ```
 
 
 # Regroupement de l'âge
 ```{r}
-df_clean$age_cat <- fct_collapse(df_clean$age_cat,
-                                 Tres_jeune = c("1"),
-                                 Jeunes  = c("2"),
-                                 Jeune_adulte = c("3"),
-                                 Adultes = c("4"),
-                                 Matures = c("5"),
-                                 Seniors = c("6"),
-                                 Personne_agee = c("7")
+df2_clean$age_cat <- fct_collapse(df2_clean$age_cat,
+                                  Tres_jeune = c("1"),
+                                  Jeunes  = c("2"),
+                                  Jeune_adulte = c("3"),
+                                  Adultes = c("4"),
+                                  Matures = c("5"),
+                                  Seniors = c("6"),
+                                  Personne_agee = c("7")
 )
 ```
 
 
 
 ```{r}
-df_clean <- df_clean %>%
+df2_clean <- df2_clean %>%
   filter(across(all_of(vars_actives), ~ !is.na(.)))
 ```
 
 
 ```{r}
-df_clean$sexe <- recode_factor(df_clean$sexe,
+df2_clean$sexe <- recode_factor(df2_clean$sexe,
                                "1" = "Homme",
                                "2" = "Femme")
 ```
 
 ```{r}
-df_clean$interet_info <- recode_factor(
-  df_clean$interet_info,
+df2_clean$interet_info <- recode_factor(
+  df2_clean$interet_info,
   "1" = "Très intéressé",
   "2" = "Assez intéressé",
   "3" = "Peu intéressé",
@@ -181,8 +181,8 @@ df_clean$interet_info <- recode_factor(
 ```
 
 ```{r}
-df_clean$info_fiable <- recode_factor(
-  df_clean$info_fiable,
+df2_clean$info_fiable <- recode_factor(
+  df2_clean$info_fiable,
   "1" = "Très facile",
   "2" = "Plutôt facile",
   "3" = "Plutôt difficile",
@@ -191,8 +191,8 @@ df_clean$info_fiable <- recode_factor(
 ```
 
 ```{r}
-df_clean$opinion_sujet <- recode_factor(
-  df_clean$opinion_sujet,
+df2_clean$opinion_sujet <- recode_factor(
+  df2_clean$opinion_sujet,
   "1" = "Médias traditionnels (radio, TV, presse)",
   "2" = "Réseaux sociaux / plateformes vidéo",
   "3" = "Discussions avec inconnus (vie réelle ou Internet)",
@@ -203,8 +203,8 @@ df_clean$opinion_sujet <- recode_factor(
 
 
 ```{r}
-df_clean$situa_pro <- recode_factor(
-  df_clean$situa_pro,
+df2_clean$situa_pro <- recode_factor(
+  df2_clean$situa_pro,
   "1" = "Actif / Active (emploi, congés ou arrêt)",
   "2" = "Chômeur.se ayant déjà travaillé",
   "3" = "Chômeur.se recherchant un premier emploi",
@@ -217,8 +217,8 @@ df_clean$situa_pro <- recode_factor(
 ```
 
 ```{r}
-df_clean$niveau_etude <- recode_factor(
-  df_clean$niveau_etude,
+df2_clean$niveau_etude <- recode_factor(
+  df2_clean$niveau_etude,
   `1` = "Niveau primaire",
   `2` = "Secondaire (6e à 3e)",
   `3` = "Secondaire (2nde à Terminale)",
@@ -233,8 +233,8 @@ df_clean$niveau_etude <- recode_factor(
 
 
 ```{r}
-str(df_clean)
-summary(df_clean)
+str(df2_clean)
+summary(df2_clean)
 ```
 
 
@@ -246,7 +246,7 @@ summary(df_clean)
 
 
 ```{r}
-table_age_reseau <- table(df_clean$age_cat, df_clean$reseaux_sociaux)
+table_age_reseau <- table(df2_clean$age_cat, df2_clean$reseaux_sociaux)
 ```
   
 ```{r}

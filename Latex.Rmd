@@ -1,0 +1,117 @@
+---
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: false
+    number_sections: true
+    keep_tex: true
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r}
+library(tinytex)
+library(dplyr)
+library(readr)
+library(stringr)
+library(FactoMineR)
+library(factoextra)
+library(forcats)
+library(kableExtra)
+library(DT)
+library(ggplot2)
+library(tidyverse)
+library(corrplot)
+library(cluster)
+```
+
+
+
+\begin{titlepage}
+\centering
+
+\vspace*{3cm}
+
+{\Huge\bfseries Contenus médiatiques et pratiques d'information des Français\par}
+
+\vspace{2cm}
+
+{\Large Réalisé par\par}
+\vspace{0.3cm}
+{\LARGE Carfantan Adrien \& Hardy Pierre\par}
+
+\vspace{1.2cm}
+
+{\Large Université de Tours\par}
+{\large Master Économie des Entreprises et des Marchés\par}
+
+\vspace{1cm}
+
+\includegraphics[width=0.4\textwidth]{logo.png}
+
+\vfill
+
+{\Large Année universitaire 2025–2026\par}
+
+\end{titlepage}
+
+
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+
+# Introduction
+
+## Présentation de la problematique
+## Présentation des bases de données
+
+\newpage
+
+# Partie I – ACP
+
+## 
+## 
+
+\newpage
+
+# Partie II – AFC
+
+## 
+## 
+
+\newpage
+
+# Partie III – ACM
+
+## 
+## 
+
+\newpage
+
+# Partie IV – Clustering
+
+## 
+## 
+
+
+\newpage
+
+# Conclusion générale
+
+\newpage
+
+# Annexe
+
+
+
+
