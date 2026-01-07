@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
   message = FALSE
 )
 ```
-
+<!-- libraries-->
 ```{r}
 library(tinytex)
 library(dplyr)
@@ -30,7 +30,276 @@ library(tidyverse)
 library(corrplot)
 library(cluster)
 ```
+<!-- base de donnée ACP-->
+```{r}
+data <- read.csv(file = "ina-barometre-jt-tv-donnees-quotidiennes-2000-2020-nbre-sujets-durees-202410.csv",
+                 sep = ";",
+                 header = FALSE,
+                 fileEncoding = "Latin1")
+data <- data[, -c(1, 3, 6)]
+```
 
+```{r}
+colnames(data) <- c("chaine", "theme", "nombre_de_programme")
+```
+
+```{r}
+data_clean <- data |> 
+  group_by(chaine, theme) |> 
+  summarise(nombre_de_programme = sum(nombre_de_programme), .groups = "drop")
+```
+
+```{r}
+data_transpose <- data_clean |> 
+  pivot_wider(names_from = chaine, values_from = nombre_de_programme, values_fill = 0)
+```
+
+```{r}
+data_transpose <- as.data.frame(data_transpose)
+rownames(data_transpose) <- as.character(data_transpose$theme)
+data_transpose <- data_transpose[,-1]
+```
+
+```{r}
+resacp <- PCA(data_transpose, scale.unit = TRUE, graph = FALSE)
+```
+
+<!-- base de donnée AFC-->
+```{r}
+df2 <- read_csv2("les-francais-et-l-information-arcom-2024-base-anonymisee.csv",
+                locale = locale(encoding = "latin1"))
+```
+
+```{r}
+df2_clean <- df2 |> select(age_cat = RS2C_RECODE_AG_R,
+                           reseaux_sociaux = RSINFO_1_LR_R_1) |> 
+  mutate(age_cat = as.factor(age_cat),
+         reseaux_sociaux = as.factor(reseaux_sociaux)) |> 
+  filter(!is.na(age_cat),
+         !is.na(reseaux_sociaux))
+```
+
+```{r}
+df2_clean$age_cat <- fct_collapse(df2_clean$age_cat,
+                                  Tres_jeune = c("1"),
+                                  Jeunes  = c("2"),
+                                  Jeune_adulte = c("3"),
+                                  Adultes = c("4"),
+                                  Matures = c("5"),
+                                  Seniors = c("6"),
+                                  Personne_agee = c("7")
+)
+```
+
+```{r}
+table_age_reseau <- table(df2_clean$age_cat, df2_clean$reseaux_sociaux)
+```
+  
+```{r}
+colnames(table_age_reseau) <- c("Facebook", "Instagram", "X(anciennement Twitter)","TikTok","Snapchat","LinkedIn","WhatsApp","Telegram","Youtube", "Twitch", "Discord", "Autre", "Aucun")
+```  
+
+```{r}
+table_age_reseau <- table_age_reseau[, -c(8, 10, 11, 12)]
+```
+
+
+```{r}
+res_chi <- chisq.test(table_age_reseau)
+chi_tab <- data.frame(
+Statistique_chi2 = round(res_chi$statistic, 2),
+Degres_de_liberte = res_chi$parameter,
+`p-value` = format(signif(res_chi$p.value, 2), scientific = TRUE)
+)
+```
+<!-- base de donnée ACM -->
+```{r}
+df <- read_csv2("les-francais-et-l-information-arcom-2024-base-anonymisee.csv",
+                locale = locale(encoding = "latin1"))
+```
+
+```{r}
+old_names <- c(
+  "RS1_R",            # sexe
+  "RS2C_RECODE_AG_R", # âge en classes
+  "INT1_R",           # Interet pour l'information
+  "INFOFIABLE_R",     # accès a infos fiable
+  "OP2_R1",           # Contribue le plus faire une opinion sur un sujet
+  "INFLUENCE_R",      # Freq avis personnel sur actu
+  "RS3_R",            # Situation professionelle
+  "RS5_R",            # Niveau d'étude
+  "POIDS03",
+  "RSINFO_1_LR_R_1"
+)
+```
+
+```{r}
+new_names <- c(
+  "sexe",
+  "age_cat",
+  "interet_info",
+  "info_fiable",
+  "opinion_sujet",
+  "avis_actu",
+  "situa_pro",
+  "niveau_etude",
+  "poids",
+  "reseaux_sociaux"
+)
+```
+
+```{r}
+present_old <- old_names[old_names %in% names(df)]
+present_new <- new_names[old_names %in% names(df)]
+```
+
+```{r}
+rename_map <- setNames(present_new, present_old)
+
+```
+
+```{r}
+df_clean <- df %>%
+  select(all_of(present_old))
+```
+
+```{r}
+names(df_clean) <- present_new
+```
+
+```{r}
+vars_quali <- c("sexe", "age_cat", "opinion_sujet",
+                "avis_actu", "situa_pro", "niveau_etude","info_fiable","interet_info")
+```
+
+```{r}
+vars_quanti <- c("poids")
+```
+
+```{r}
+vars_quali_sup <- c("interet_info", "niveau_etude", "situa_pro")
+```
+
+```{r}
+vars_quanti_sup <- "poids"
+```
+
+```{r}
+df_clean <- df_clean %>%
+  mutate(
+    across(any_of(vars_quali), as.factor),
+    poids = if ("poids" %in% names(.)) as.numeric(stringr::str_replace(poids, ",", ".")) else NA_real_,
+    interet_info = if ("interet_info" %in% names(.)) as.numeric(interet_info) else NA_real_
+  )
+```
+
+```{r}
+vars_actives <- intersect(
+  c("sexe", "age_cat", "opinion_sujet", "avis_actu", "info_fiable"),
+  names(df_clean)
+)
+```
+
+```{r}
+df_clean <- df_clean %>%
+  filter(across(all_of(vars_actives), ~ !is.na(.)))
+```
+
+```{r}
+df_clean$age_cat <- fct_collapse(df_clean$age_cat,
+  Jeunes  = c("1", "2"),
+  Adultes = c("3", "4"),
+  Matures = c("5"),
+  Seniors = c("6", "7")
+)
+```
+
+```{r}
+df_clean <- df_clean %>%
+  filter(across(all_of(vars_actives), ~ !is.na(.)))
+```
+
+```{r}
+df_clean$sexe <- recode_factor(df_clean$sexe,
+                               "1" = "Homme",
+                               "2" = "Femme")
+```
+
+```{r}
+df_clean$interet_info <- recode_factor(
+  df_clean$interet_info,
+  "1" = "Très intéressé",
+  "2" = "Assez intéressé",
+  "3" = "Peu intéressé",
+  "4" = "Pas du tout intéressé"
+)
+```
+
+```{r}
+df_clean$info_fiable <- recode_factor(
+  df_clean$info_fiable,
+  "1" = "Très facile",
+  "2" = "Plutôt facile",
+  "3" = "Plutôt difficile",
+  "4" = "Très difficile"
+)
+```
+
+```{r}
+df_clean$opinion_sujet <- recode_factor(
+  df_clean$opinion_sujet,
+  "1" = "Médias traditionnels (radio, TV, presse)",
+  "2" = "Réseaux sociaux / plateformes vidéo",
+  "3" = "Discussions avec inconnus (vie réelle ou Internet)",
+  "4" = "Échanges avec proches (famille, amis, collègues…)",
+  "5" = "Aucun"
+)
+```
+
+
+```{r}
+df_clean$situa_pro <- recode_factor(
+  df_clean$situa_pro,
+  "1" = "Actif / Active (emploi, congés ou arrêt)",
+  "2" = "Chômeur.se ayant déjà travaillé",
+  "3" = "Chômeur.se recherchant un premier emploi",
+  "4" = "Étudiant·e",
+  "5" = "Personne au foyer",
+  "6" = "Retraité·e",
+  "7" = "Autre inactif·inactive (invalide, rentier…)",
+  "8" = "NSP / Ne souhaite pas répondre"
+)
+```
+
+```{r}
+df_clean$niveau_etude <- recode_factor(
+  df_clean$niveau_etude,
+  `1` = "Niveau primaire",
+  `2` = "Secondaire (6e à 3e)",
+  `3` = "Secondaire (2nde à Terminale)",
+  `4` = "Technique court (CAP, BEP)",
+  `5` = "Baccalauréat / Bac pro / Brevet professionnel",
+  `6` = "Technique supérieur (BTS, DUT)",
+  `7` = "Supérieur 1er cycle (DEUG, DEUST, Licence)",
+  `8` = "Supérieur 2nd cycle (DEA, DESS, Maîtrise, Master)",
+  `9` = "Supérieur 3e cycle (Doctorat)"
+)
+```
+
+```{r}
+res_mca <- MCA(
+  df_clean,   
+  quali.sup = c(
+    which(names(df_clean) == "niveau_etude"),
+    which(names(df_clean) == "interet_info"),
+    which(names(df_clean) == "situa_pro")
+  ),
+  quanti.sup = c(
+    which(names(df_clean) == "poids")
+  ),
+  graph = FALSE
+)
+```
 
 
 \begin{titlepage}
@@ -49,9 +318,9 @@ library(cluster)
 \vspace{1.2cm}
 
 {\Large Université de Tours\par}
-{\large Master Économie des Entreprises et des Marchés\par}
+{\large Master Économie de  l'Entreprises et des Marchés\par}
 
-\vspace{1cm}
+\vspace{1.5cm}
 
 \includegraphics[width=0.4\textwidth]{logo.png}
 
@@ -72,8 +341,26 @@ library(cluster)
 
 # Introduction
 
-## Présentation de la problematique
+## Enjeux et objectifs du projet
+
+Ce projet a été réalisé dans le cadre du cours de Data Mining, l’enjeu principal de celui ci réside dans la nature même des données étudiées, caractérisées par un nombre élevé de variables et par une forte hétérogénéité de l’information. L’analyse directe de ces données s’avère peu lisible, ce qui rend nécessaire le recours à des méthodes statistiques capables de synthétiser l’information tout en conservant les structures essentielles. L’objectif est ainsi de faire apparaître des régularités, des oppositions et des proximités entre  les variables et les individus.
+
+Le projet poursuit plusieurs objectifs. Il s’agit d’abord de mettre en évidence les grandes dimensions qui structurent la couverture thématique de l’information télévisée, afin de mieux comprendre l’organisation des contenus diffusés dans les journaux télévisés. Il vise également à analyser les pratiques d’information des individus, en étudiant les relations entre leurs caractéristiques sociales, leur intérêt pour l’actualité, leurs sources d’information et leur perception de la fiabilité des médias.
+
+Pour répondre à ces objectifs, différentes méthodes d’analyse multivariée ont été mobilisées. Une Analyse en Composantes Principales a d’abord été appliquée afin d’identifier les principaux axes organisant les thématiques de l’information. Une Analyse Factorielle des Correspondances a ensuite permis d’étudier les liens entre les catégories d’âge et l’usage des réseaux sociaux. Enfin, une Analyse des Correspondances Multiples a été réalisée afin d’analyser conjointement plusieurs variables qualitatives et de dégager des profils d’individus en fonction de leurs pratiques et perceptions de l’information.
+
+Cette approche est complétée par une classification des individus fondée sur les résultats de l’ACM, dont l’objectif est de regrouper les répondants en classes homogènes et interprétables. L’ensemble de ces analyses permet ainsi de proposer une lecture synthétique des données et d’apporter des éléments de compréhension sur la diversité des comportements face à l’information et aux médias dans le contexte français contemporain.
+
 ## Présentation des bases de données
+
+Le travail réalisé dans ce projet repose sur l’exploitation de deux bases de données distinctes, issues d’organismes publics français, et portant toutes deux sur la thématique de l’information et des médias. Bien que différentes par leur nature et leur structure, ces bases sont complémentaires et permettent d’aborder le sujet sous deux angles : celui de la production de l’information et celui de sa réception par le public.
+
+La première base de données est fournie par l’Institut National de l’Audiovisuel (INA). Elle recense, sur une longue période, les sujets traités dans les journaux télévisés français, en distinguant plusieurs thématiques telles que la politique, l’économie, la santé, la culture, le sport ou encore les faits divers. Chaque observation correspond à un couple date-chaîne et indique le nombre de sujets diffusés pour chaque thème. Cette base est essentiellement quantitative et se prête naturellement à une Analyse en Composantes Principales, dont l’objectif est de dégager les principales dimensions structurant la couverture médiatique des journaux télévisés.
+
+La seconde base de données provient d’une enquête menée par l’ARCOM intitulée « Les Français et l’information ». Elle repose sur des données d’enquête collectées auprès d’un large échantillon de la population française et contient principalement des variables qualitatives. Ces variables décrivent à la fois des caractéristiques socio-démographiques (sexe, âge, niveau d’études, situation professionnelle) et des pratiques liées à l’information, telles que l’intérêt pour l’actualité, les sources utilisées pour se forger une opinion ou encore la perception de la fiabilité de l’information. La richesse et la diversité de ces variables rendent cette base particulièrement adaptée à des méthodes d’analyse factorielle pour données qualitatives, notamment l’Analyse des Correspondances Multiples.
+
+L’utilisation conjointe de ces deux bases de données permet d’adopter une approche globale du phénomène étudié. D’un côté, la base de l’INA offre une vision structurée des contenus informationnels diffusés par les médias audiovisuels ; de l’autre, la base de l’ARCOM permet d’analyser la manière dont ces contenus sont perçus, consommés et évalués par les individus. Ce double regard constitue un atout majeur du projet et justifie le recours à des méthodes statistiques variées afin d’exploiter au mieux l’information contenue dans les données.
+
 
 \newpage
 
@@ -86,8 +373,25 @@ library(cluster)
 
 # Partie II – AFC
 
-## 
-## 
+## Objectif et validation statistique
+
+Afin de completer notre analyse, passons  a l'etude des liens entre les categories d'age et l'usage des reseaux sociaux pour ce faire nous allons utiliser la base de donnée de l'ARCOM. Dans ce contexte, l’analyse factorielle des correspondances s’inscrit pleinement dans la démarche adoptée. Elle permet d’étudier de manière synthétique et visuelle la relation entre deux variables qualitatives : les classes d’âge et les réseaux sociaux utilisés comme sources d’information. 
+
+Cette analyse constitue une première étape dans l’étude des pratiques d’information du public. Elle permet d’identifier des logiques générationnelles dans l’usage des réseaux sociaux, qui seront ensuite approfondies dans la Partie III à l’aide d’une Analyse des Correspondances Multiples, intégrant un ensemble plus large de variables qualitatives relatives aux perceptions et comportements informationnels.
+
+L’analyse factorielle des correspondances (AFC) est utilisée afin d’étudier la relation entre les classes d’âge et les réseaux sociaux utilisés comme sources d’information.
+Avant toute interprétation, un test du khi-deux d’indépendance est réalisé.
+
+
+```{r}
+kable(chi_tab, format = "latex",booktabs = TRUE, caption = "Résultats du test du khi-deux") |>
+kable_styling(latex_options = c("hold_position", "scale_down"))
+```
+
+Les résultats du test montrent une statistique de χ² = 679.14 pour 48 degrés de liberté, avec une p-value inférieure à 2,3 × 10⁻¹¹².
+L’hypothèse d’indépendance est donc rejetée, ce qui confirme l’existence d’un lien statistiquement significatif entre l’âge et l’usage des réseaux sociaux, justifiant le recours à l’AFC.
+
+
 
 \newpage
 
@@ -111,6 +415,20 @@ library(cluster)
 \newpage
 
 # Annexe
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
