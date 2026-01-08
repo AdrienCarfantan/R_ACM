@@ -1,10 +1,18 @@
 ---
+lang: fr
 output:
   pdf_document:
     latex_engine: xelatex
     toc: false
     number_sections: true
     keep_tex: true
+header-includes:
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[L]{Carfantan Adrien, Hardy Pierre}
+  \fancyhead[R]{l'audiovisuel en France}
+  \fancyfoot[C]{\thepage}
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, message=FALSE}
@@ -29,6 +37,7 @@ library(ggplot2)
 library(tidyverse)
 library(corrplot)
 library(cluster)
+library(patchwork)
 ```
 <!-- base de donnée ACP-->
 ```{r}
@@ -103,6 +112,9 @@ colnames(table_age_reseau) <- c("Facebook", "Instagram", "X(anciennement Twitter
 table_age_reseau <- table_age_reseau[, -c(8, 10, 11, 12)]
 ```
 
+```{r}
+res_afc <- CA(table_age_reseau, graph = FALSE)
+```
 
 ```{r}
 res_chi <- chisq.test(table_age_reseau)
@@ -320,7 +332,7 @@ res_mca <- MCA(
 {\Large Université de Tours\par}
 {\large Master Économie de  l'Entreprises et des Marchés\par}
 
-\vspace{1.5cm}
+\vspace{2cm}
 
 \includegraphics[width=0.4\textwidth]{logo.png}
 
@@ -375,13 +387,12 @@ L’utilisation conjointe de ces deux bases de données permet d’adopter une a
 
 ## Objectif et validation statistique
 
-Afin de completer notre analyse, passons  a l'etude des liens entre les categories d'age et l'usage des reseaux sociaux pour ce faire nous allons utiliser la base de donnée de l'ARCOM. Dans ce contexte, l’analyse factorielle des correspondances s’inscrit pleinement dans la démarche adoptée. Elle permet d’étudier de manière synthétique et visuelle la relation entre deux variables qualitatives : les classes d’âge et les réseaux sociaux utilisés comme sources d’information. 
+Afin de compléter l'analyse précédente, cette partie s'intéresse aux liens entre les catégories d'âge et le réseau social le plus utilisé pour ce faire nous allons utiliser la base de données de l'ARCOM.
+L’analyse factorielle des correspondances (AFC) constitue un outil particulièrement adapté, puisqu’elle permet d’analyser de manière synthétique et graphique la relation entre deux variables qualitatives : les classes d’âge et le réseau social le plus utilisé.
 
-Cette analyse constitue une première étape dans l’étude des pratiques d’information du public. Elle permet d’identifier des logiques générationnelles dans l’usage des réseaux sociaux, qui seront ensuite approfondies dans la Partie III à l’aide d’une Analyse des Correspondances Multiples, intégrant un ensemble plus large de variables qualitatives relatives aux perceptions et comportements informationnels.
+Cette analyse représente une première étape dans l’étude des pratiques d’information des individus. Elle vise à identifier l'existence de logiques générationnelles dans l’usage des réseaux sociaux, qui seront ensuite approfondies dans la Partie III à l’aide d’une Analyse des Correspondances Multiples, intégrant un ensemble plus large de variables qualitatives.
 
-L’analyse factorielle des correspondances (AFC) est utilisée afin d’étudier la relation entre les classes d’âge et les réseaux sociaux utilisés comme sources d’information.
 Avant toute interprétation, un test du khi-deux d’indépendance est réalisé.
-
 
 ```{r}
 kable(chi_tab, format = "latex",booktabs = TRUE, caption = "Résultats du test du khi-deux") |>
@@ -391,6 +402,119 @@ kable_styling(latex_options = c("hold_position", "scale_down"))
 Les résultats du test montrent une statistique de χ² = 679.14 pour 48 degrés de liberté, avec une p-value inférieure à 2,3 × 10⁻¹¹².
 L’hypothèse d’indépendance est donc rejetée, ce qui confirme l’existence d’un lien statistiquement significatif entre l’âge et l’usage des réseaux sociaux, justifiant le recours à l’AFC.
 
+## Choix des axes et potentielle hypothese
+
+```{r, fig.height = 4}
+fviz_screeplot(res_afc) +
+  labs(title = "Diagramme des valeurs propres de l'AFC",
+       x = "Axes factoriels",
+       y = "Pourcentage d'inertie") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+inertie <- res_afc$eig[,2]
+```
+
+Avant de debuter nous devons rechercher les axes a etudié, l’analyse des valeurs propres indique que :
+
+l’axe 1 explique environ `r round(inertie[1], 2)` % de l’inertie totale ;
+
+l’axe 2 explique environ `r round(inertie[2], 2)` % de l’inertie totale.
+
+Les deux premiers axes cumulent ainsi près de `r round(sum(inertie[1:2]), 2)` % de l’inertie, ce qui assure une excellente qualité de représentation du phénomène étudié dans le plan factoriel (Dim 1, Dim 2).
+L’interprétation sera donc concentrée sur ces deux axes.
+
+Avant d'appronfondir l'étude, il est deja possible de formuler une hypothese. On peut s'attendre une forte différenciation générationnelle : les personnes les plus jeunes seront majoritaire associés à l'utilisation de réseau plus récente tel que Instagram ou Tiktok, tandis que les personnee plus âgées seront associés a des plateformes de communication plus qu'à des réseaux comme WhatsApp soit à une absence d'usage des réseaux sociaux.
+
+## Interprétation du plan factoriel
+
+```{r}
+fviz_ca_biplot(res_afc,
+               repel = TRUE,
+               col.row = "steelblue",
+               col.col = "red") +
+  labs(title = "Biplot de l’analyse factorielle des correspondances") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+Le premier axe met en évidence une opposition générationnelle marquée dans l'usage des réseaux.
+Les classes d’âge jeunes et très jeunes sont principalement associées à des plateformes récentes telles qu’Instagram, TikTok ou Snapchat, tandis que les classes d’âge les plus élevées se rapprochent davantage de réseaux comme WhatsApp, Youtube voir de l'absence d'utilisation de réseaux sociaux.
+
+Cette opposition est particulièrement visible pour les très jeunes (15–17 ans), proches d’Instagram, et pour les jeunes (18–24 ans), associés à TikTok, alors que les personnes âgées de plus de 70 ans apparaissent fortement liées à la modalité « aucun réseau ».
+
+Le second axe illustre des différences plus fines entre certaines classes d’âge intermédiaires.
+Il met en évidence que les variations ne se limitent pas à une opposition binaire entre jeunes et âgés : l’âge influence les préférences progressivement, avec des nuances subtiles qui ne deviennent perceptibles qu’en examinant l’ensemble des modalités. 
+Les points proches de l’origine correspondent à des comportements moyens, c’est-à-dire à des groupes d’individus dont le réseau préféré n’est pas particulièrement différencié par rapport aux autres.
+
+
+```{r}
+graph1 <- fviz_contrib(res_afc, choice = "row", axes = 1) +
+  labs(title = "Axe 1",
+       x = "Catégories",
+       y = "Contribution (%)") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+graph2 <- fviz_contrib(res_afc, choice = "row", axes = 2) +
+  labs(title = "Axe 2",
+       x = "Catégories",
+       y = "Contribution (%)") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+graph1 | graph2
+```
+
+L’analyse des contributions montre que l'axe 1 est principalement structuré par les classes d’âge jeunes.
+Les catégories Jeunes, Très jeunes et Personnes âgées présentent des contributions nettement supérieures à la moyenne, avec une contribution particulièrement forte des Jeunes (environ 40 %).
+À l’inverse, les Adultes, Matures et Jeunes adultes contribuent très faiblement à cet axe.
+
+L’axe 1 traduit donc une opposition forte entre les classes d’âge jeunes et le reste de la population, ce qui suggère des pratiques d’information très spécifiques chez les plus jeunes.
+
+L’axe 2 est dominé par les catégories Adultes, Jeunes adultes et Personnes âgées, dont les contributions dépassent largement le seuil moyen.
+Les Adultes apparaissent comme la modalité la plus structurante de cet axe.
+
+À l’inverse, les Jeunes et les Seniors contribuent moins fortement, tandis que les Matures jouent un rôle quasi marginal.
+Cet axe met en évidence une différenciation interne aux classes d’âge intermédiaires, plutôt qu’une opposition jeunes / âgés.
+
+
+```{r}
+graph3 <- fviz_contrib(res_afc, choice = "col", axes = 1) +
+  labs(title = "Axe 1",
+       x = "Catégories",
+       y = "Contribution (%)") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+graph4 <- fviz_contrib(res_afc, choice = "col", axes = 2) +
+  labs(title = "Axe 2",
+       x = "Catégories",
+       y = "Contribution (%)") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+graph3 | graph4
+```
+
+L’axe 1 est très largement structuré par Instagram, qui concentre plus de 60 % de la contribution totale.
+Cette contribution particulièrement élevée indique que cette plateforme est déterminante dans la différenciation des comportements observés sur ce premier axe.
+
+Dans une moindre mesure, WhatsApp et la modalité Aucun contribuent également au-dessus du seuil moyen. Cela suggère une opposition entre des individus fortement utilisateurs d’Instagram et d’autres dont les usages reposent davantage sur des applications de messagerie ou sur une absence de recours aux réseaux sociaux.
+
+Le second axe est principalement structuré par WhatsApp, Facebook, Instagram et la modalité Aucun, dont les contributions dépassent nettement la moyenne.
+À l’opposé, les plateformes comme YouTube, Snapchat, TikTok, LinkedIn et X contribuent très faiblement à cet axe. Elles jouent donc un rôle secondaire dans l’opposition mise en évidence par la deuxième dimension factorielle.
+
+## Conclusion intermédiaire
+	
+L’Analyse Factorielle des Correspondances met en évidence une structuration nette des individus selon l’âge et leur réseau social le plus utilisé. Elle montre que les méthodes factorielles permettent de résumer efficacement des données qualitatives complexes et de visualiser les relations entre les modalités des variables étudiées.
+
+Cette analyse offre un cadre méthodologique solide pour explorer les liens entre caractéristiques démographiques et préférences en matière de réseaux sociaux, en identifiant les différences et similarités entre les groupes. Elle illustre également l’intérêt d’une approche statistique structurée pour dégager des tendances globales et comprendre la manière dont l’âge influence le choix des plateformes.
+
+En conclusion, l’AFC confirme que l’âge constitue un facteur déterminant dans l’utilisation des réseaux sociaux et démontre l’efficacité des méthodes multivariées pour synthétiser et interpréter des données qualitatives hétérogènes.
 
 
 \newpage
@@ -416,7 +540,9 @@ L’hypothèse d’indépendance est donc rejetée, ce qui confirme l’existenc
 
 # Annexe
 
+\newpage
 
+# Bibliographie
 
 
 
