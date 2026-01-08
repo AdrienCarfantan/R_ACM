@@ -297,6 +297,17 @@ df_clean$niveau_etude <- recode_factor(
 ```
 
 ```{r}
+df_clean$avis_actu <- recode_factor(
+  df_clean$avis_actu,
+  `1` = "Trés souvent",
+  `2` = "Souvent",
+  `3` = "De temps en temps",
+  `4` = "Rarement",
+  `5` = "Jamais",
+)
+```
+
+```{r}
 res_mca <- MCA(
   df_clean,   
   quali.sup = c(
@@ -591,9 +602,291 @@ En conclusion, l’AFC confirme que l’âge constitue un facteur déterminant d
 
 # Partie III – ACM
 
-## 
-## 
+Dans cette partie, nous cherchons à comprendre comment les individus se différencient dans leur rapport à
+l’information, en fonction de leurs pratiques informationnelles et de leur perception de la fiabilité de
+l’information, tout en tenant compte de certaines caractéristiques sociodémographiques. L’objectif est d’observer
+les principales oppositions et similarités entre individus à partir de leurs réponses à l’enquête.
 
+Pour répondre à cette question, nous utilisons une Analyse des Correspondances Multiples (ACM) appliquée aux
+données de l’enquête « Les Français et l’information » menée par l’ARCOM. Cette méthode permet d’analyser simultanément
+plusieurs variables qualitatives et de mettre en évidence les axes principaux qui structurent les pratiques et
+perceptions de l’information, ainsi que la position des individus dans cet espace.
+
+## Présentation du cadre et des variables utilisés
+
+
+
+
+## Résultats factoriels de l'acm
+
+### Etude des inerties et des axes factoriels
+```{r}
+fviz_screeplot(res_mca,
+               addlabels = TRUE,
+               barcolor = "black") +
+  ggtitle("Représentation des parts d'inerties expliquées par les axes") +
+  ylab("Part d’inertie expliquée (%)")
+```
+
+```{r}
+tab_inertie <- t(res_mca$eig)
+kable(round(tab_inertie, 2),format = "latex",booktabs = TRUE,
+      caption = "Valeurs propres et inertie cumulée de l’AFC") |> 
+  kable_styling(latex_options = c("hold_position", "scale_down"))
+```
+
+Les résultats montrent que la première dimension explique 11,06 % de l’inertie, tandis que la deuxième en
+explique 8,98 %. Les deux premiers axes cumulent ainsi environ 20 % de l’information totale, ce qui est classique
+en analyse des correspondances multiples, où l’information est souvent répartie sur plusieurs dimensions étant
+donné qu'il y a beaucoup de modalités. La décroissance est progressive, sans coude net, donc même si les deux premiers
+axes restent centraux pour la lecture globale, les dimensions suivantes présentent également des parts d’inertie non
+négligeables. Il apparaît donc pertinent de ne pas se limiter aux deux premiers axes et de prendre en compte d’autres
+dimensions afin d’affiner l’interprétation de la structure des données.
+Nous allons donc porter notre analyse sur les axes 1 et 2 mais également 3 et 4 pour ne pas manquer de capter des
+informations dans notre analyse.
+
+### Structure du nuage des individus
+
+
+```{r}
+nuage1 <- fviz_mca_ind(res_mca,
+                       geom = "point",
+                       label = "none",
+                       palette = "Dark2",
+                       pointsize = 1.5,
+                       alpha = 0.5) +
+  labs(title = "Plan factoriel 1–2") +
+  theme(
+    text = element_text(size = 16),
+    plot.title = element_text(size = 20, hjust = 0.5),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 16))
+```
+
+```{r}
+nuage2 <- fviz_mca_ind(res_mca,
+                       axes = c(3, 4),
+                       geom = "point",
+                       label = "none",
+                       palette = "Dark2",
+                       pointsize = 1.5,
+                       alpha = 0.5) +
+  labs(title = "Plan factoriel 3–4") +
+  theme(
+    text = element_text(size = 16),
+    plot.title = element_text(size = 20, hjust = 0.5),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 16))
+```
+
+```{r, fig.width=18, fig.height=8}
+nuage1 | nuage2
+```
+
+On observe un nuage de point relativement dense autour de l'origine, ce qui indique que la majorité des individus présentent
+des profils assez proches et similaires au regard des variables retenues. On ne distingue pas de groupes distincts pour l'instant.
+La dimension 1 montre une dispersion plus importante vers la droite, on remarque que certains individus sont clairement éloignés
+du centre de cette axe ce qui montre que nous avons des profils plus spécifiques. La dimension 2 nous montre une dispersion verticale plus limitée,
+cette dimension affine les profils sans créer de rupture franche entre les individus. Donc le nuage ne présente ni clusters évidents ni
+séparation franche, la structure propose une diversité progressive des profils plutôt qu'une segmentation nette. L'analyse des
+catégories et des variables supplémentaires est donc indispensable pour donner du sens au position des individus.
+La projection des individus sur les dimensions 3 et 4 ne fait pas apparaître de structuration nouvelle du nuage. Comme sur le premier plan factoriel, les individus restent majoritairement concentrés autour de l’origine, ce qui confirme que ces axes apportent des informations complémentaires sans remettre en cause l’organisation générale observée.
+
+Code R pour les habillages avec ellipse de dimensions 1 et 2 par catégories (placé 3 graphiques sur une ligne et deux en dessous)
+
+```{r}
+ellipse1 <- fviz_mca_ind(res_mca,
+                         geom = "point",
+                         habillage = "sexe",
+                         palette = c("#e74c3c", "#3498db"),
+                         addEllipses = TRUE,
+                         label = "none",
+                         alpha = 0.7) +
+  ggtitle("Individuals – MCA (Sexe)")
+```
+
+```{r}
+ellipse2 <- fviz_mca_ind(res_mca,
+                         geom = "point",
+                         habillage = "age_cat",
+                         palette = "Dark2",
+                         addEllipses = TRUE,
+                         label = "none",
+                         alpha = 0.7) +
+  ggtitle("Individuals – MCA (Age Categories)")
+```
+
+```{r}
+ellipse3 <- fviz_mca_ind(res_mca,
+                         geom = "point",
+                         habillage = "avis_actu",
+                         palette = "Dark2",
+                         addEllipses = TRUE,
+                         label = "none",
+                         alpha = 0.7) +
+  ggtitle("Individuals – MCA (Avis-Actu)")
+```
+
+```{r}
+ellipse4 <- fviz_mca_ind(res_mca,
+                         geom = "point",
+                         habillage ="info_fiable",palette = "Dark2",
+                         addEllipses = TRUE,
+                         label = "none",
+                         alpha = 0.7) +
+  ggtitle("Individuals – MCA (Info fiable)")
+```
+
+```{r}
+ellipse5 <- fviz_mca_ind(res_mca,
+                         geom = "point",
+                         habillage ="opinion_sujet",
+                         palette = "Dark2",
+                         addEllipses = TRUE,
+                         label = "none",
+                         alpha = 0.7) +
+  ggtitle("Individuals – MCA (Opinion sujet)")
+```
+
+```{r}
+layout <- (ellipse1 | ellipse2 | ellipse3) / (ellipse4 | ellipse5)
+layout
+```
+
+
+
+
+
+
+
+
+
+
+
+
+Les ellipses associées aux hommes et aux femmes se recouvrent largement, cela indique une forte proximité des profils
+informationnels selon le sexe. On observe toutefois une légère tendance des hommes à se projeter davantage du côté positif
+de la dimension 1.
+Les catégories d’âge présentent des positions différenciées sur la dimension 1, avec les jeunes et les adultes davantage situés
+à droite, tandis que les seniors sont plus concentrés à gauche. On observe malgré tout un recouvrement important des ellipses qui traduit
+une continuité des profils plutôt qu'une rupture générationnelle.
+Les individus ayant des avis contrastés sur l’actualité occupent des zones partiellement distinctes, notamment sur la dimension 1. Toutefois, l’interpénétration des groupes montre que le degré d’avis personnel ne suffit pas à structurer fortement l’espace des individus.
+Une opposition plus lisible apparaît entre les individus déclarant un accès « très facile » à une information fiable,
+plutôt situés à droite, et ceux déclarant un accès « difficile », davantage positionnés à gauche. On remarque également une distinction
+sur la dimension 2, on voit que les individus qui ont accès a une info fiable facilement sont plutôt situé en bas, alors que
+à l'inverse pour un accès difficile ils sont plutôt situé en haut.
+Pour notre dernier habillage on ne distingue pas tellement de séparation encore les ellipses sont partiellement superposés.
+Les représentations avec habillage confirment l’absence de segmentation nette du nuage des individus. Elles mettent toutefois
+en évidence des tendances de positionnement associées à l’âge, à l’accès à une information fiable et aux pratiques informationnelles,
+suggérant l’existence de profils différenciés mais non strictement séparés.
+
+### Organisation des modalités dans l'espace factoriel
+
+```{r}
+nuage3 <- fviz_mca_var(res_mca,
+                       repel = TRUE,
+                       col.var = "red",
+                       alpha.var = 0.8,
+                       labelsize = 6,
+                       invisible = c("quali.sup", "quanti.sup")) +
+  labs(title = "Plan factoriel 1–2") +
+  theme(
+    text = element_text(size = 16),
+    plot.title = element_text(size = 20, hjust = 0.5),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 16))
+```
+
+```{r}
+nuage4 <- fviz_mca_var(res_mca,
+                       axes = c(3, 4),
+                       repel = TRUE,
+                       col.var = "red",
+                       alpha.var = 0.8,
+                       labelsize = 6,
+                       invisible = c("quali.sup", "quanti.sup")) +
+  labs(title = "Plan factoriel 3–4") +
+  theme(
+    text = element_text(size = 16),
+    plot.title = element_text(size = 20, hjust = 0.5),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 16))
+```
+
+```{r, fig.width=18, fig.height=8}
+(nuage3 + coord_equal()) | (nuage4 + coord_equal())
+```
+
+L’analyse des modalités sur les premiers plans factoriels permet de mieux comprendre la manière dont les individus se positionnent
+face à l’information et aux sources qu’ils mobilisent pour se forger une opinion.
+
+Sur le plan formé par les dimensions 1 et 2, la dimension 1 oppose clairement deux grands profils. D’un côté, on observe
+les individus qui déclarent qu’il est très facile d’accéder à une information fiable et qui s’appuient davantage sur les
+réseaux sociaux et plateformes vidéo pour construire leur opinion. Ces modalités sont principalement associées aux jeunes,
+ce qui traduit une plus grande aisance avec les supports numériques et une perception plus fluide de l’accès à l’information.
+À l’inverse, l’autre côté de l’axe regroupe davantage les seniors et les matures, ainsi que le recours aux médias traditionnels
+(radio, télévision, presse). Ces modalités sont associées à une perception plus nuancée, voire plus difficile, de l’accès à
+l’information fiable, suggérant un rapport plus prudent et institutionnel à l’actualité.
+
+La dimension 2 apporte un éclairage complémentaire en mettant en avant la question de la difficulté perçue dans l’accès à
+une information fiable. Les modalités « Très difficile » et le recours aux échanges avec les proches (famille, amis, collègues)
+apparaissent proches, indiquant que lorsque l’information est perçue comme complexe ou incertaine, les individus ont tendance
+à s’appuyer davantage sur leur entourage pour se forger une opinion. À l’inverse, les discussions avec des inconnus, dans la
+vie réelle ou sur Internet, se distinguent, traduisant une autre manière de confronter les points de vue et l’information.
+
+Les dimensions 3 et 4, bien que secondaires, confirment ces tendances générales. La dimension 3 renforce notamment le clivage
+générationnel déjà observé, avec une opposition entre les jeunes, plus proches des réseaux sociaux, et les profils plus âgés,
+davantage associés aux médias traditionnels. La dimension 4 met en évidence des modalités plus spécifiques, comme la perception
+d’un accès très difficile à l’information ou le recours aux discussions avec des inconnus, qui correspondent à des profils
+moins centraux mais clairement identifiables.
+
+
+```{r}
+fviz_contrib(res_mca,
+             choice = "var",
+             axes = 1,
+             top = 15,
+             col = "#9b2242") +
+  ggtitle("Contribution des modalités à l'axe 1")
+```
+
+```{r}
+contrib_dim1 <- res_mca$var$contrib[, 1]
+
+tab_contrib_dim1 <- data.frame(
+  Modalite = names(contrib_dim1),
+  Contrib = contrib_dim1
+) |>
+  dplyr::arrange(desc(Contrib)) |>
+  dplyr::mutate(
+    Contrib_Cum = cumsum(Contrib)
+  )
+
+tab_contrib_dim1_top <- tab_contrib_dim1[1:15, ]
+```
+La dimension 1 est principalement structurée par la modalité « Très facile », qui contribue à hauteur d’environ 21,5 % à la
+construction de l’axe. Cette modalité est fortement liée au fait de s’informer à partir des grands médias (radio, télévision, presse),
+lesquels représentent eux aussi une contribution importante (≈ 21,4 %). À eux deux, ces éléments expliquent plus de 42 % de l’inertie
+ de l’axe, ce qui indique que cette première dimension reflète avant tout un rapport simple et institutionnalisé à l’information,
+ perçue comme facilement accessible pour se forger une opinion.
+
+On observe ensuite l’intervention de facteurs générationnels, avec une contribution non négligeable des seniors (≈ 10,6 %) et des
+jeunes (≈ 9,5 %), suggérant des pratiques d’information différenciées selon l’âge. Enfin, les réseaux sociaux et plateformes vidéo
+ contribuent également à la structuration de cette dimension (≈ 7,0 %), ce qui met en évidence une opposition progressive entre
+les sources d’information traditionnelles et les sources numériques dans la construction de l’opinion.
+
+### Rôles des variables supplémentaires
+
+
+
+
+## Lecture synthétique et limites de l'ACM
+
+
+
+
+A mettre en annexe :
+Habillage dimension 3 et 4
 \newpage
 
 # Partie IV – Clustering
@@ -604,6 +897,10 @@ En conclusion, l’AFC confirme que l’âge constitue un facteur déterminant d
 \newpage
 
 # Conclusion générale
+
+\newpage
+
+# Annexe
 
 \newpage
 
