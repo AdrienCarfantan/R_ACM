@@ -140,8 +140,7 @@ old_names <- c(
   "INFLUENCE_R",      # Freq avis personnel sur actu
   "RS3_R",            # Situation professionelle
   "RS5_R",            # Niveau d'étude
-  "POIDS03",
-  "RSINFO_1_LR_R_1"
+  "POIDS03"
 )
 ```
 
@@ -155,8 +154,7 @@ new_names <- c(
   "avis_actu",
   "situa_pro",
   "niveau_etude",
-  "poids",
-  "reseaux_sociaux"
+  "poids"
 )
 ```
 
@@ -379,7 +377,79 @@ L’utilisation conjointe de ces deux bases de données permet d’adopter une a
 # Partie I – ACP
 
 ## 
+
+
+
+
+
 ## 
+
+```{r}
+fviz_pca_var(resacp, repel = TRUE) +
+  labs(title = "Projection des variables sur le plan factoriel (ACP)",
+       x = "Axe 1",
+       y = "Axe 2") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+fviz_pca_ind(resacp, repel = TRUE) +
+  labs(title = "Projection des individus sur le plan factoriel (ACP)",
+       x = "Axe 1",
+       y = "Axe 2") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+fviz_screeplot(resacp) +
+  labs(title = "Diagramme des valeurs propres de l'ACP",
+       x = "Axes factoriels",
+       y = "Pourcentage d'inertie") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+schema1 <- fviz_contrib(resacp, choice = "var", axes = 1) +
+  labs(title = "Axe 1",
+       x = "Catégories",
+       y = "Contribution (%)") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+schema2 <- fviz_contrib(resacp, choice = "var", axes = 2) +
+  labs(title = "Axe 2",
+       x = "Catégories",
+       y = "Contribution (%)") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+schema1 | schema2
+```
+
+```{r}
+schema3 <- fviz_contrib(resacp, choice = "ind", axes = 1) +
+  labs(title = "Axe 1",
+       x = "Catégories",
+       y = "Contribution (%)") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+schema4 <- fviz_contrib(resacp, choice = "ind", axes = 2) +
+  labs(title = "Axe 2",
+       x = "Catégories",
+       y = "Contribution (%)") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+schema3 | schema4
+```
+
+
 
 \newpage
 
@@ -531,28 +601,17 @@ En conclusion, l’AFC confirme que l’âge constitue un facteur déterminant d
 ## 
 ## 
 
-
 \newpage
 
 # Conclusion générale
 
 \newpage
 
-# Annexe
-
-\newpage
-
 # Bibliographie
 
-
-
-
-
-
-
-
-
-
+Autorité de Régulation de la Communication Audiovisuelle et Numérique (ARCOM). (2024). Les Français et l’information – 2024 [jeu de données]. https://defis.data.gouv.fr/datasets/662bd340e32d60bee0ca828a
+ 
+Institut National de l'Audiovisuel (INA). (2024). Classement thématique des sujets de journaux télévisés (janvier 2000 - décembre 2020) [jeu de donnée]. https://defis.data.gouv.fr/datasets/57fe1446c751df182f79df72
 
 
 

@@ -51,8 +51,7 @@ old_names <- c(
   "INFLUENCE_R",      # Freq avis personnel sur actu
   "RS3_R",            # Situation professionelle
   "RS5_R",            # Niveau d'étude
-  "POIDS03",
-  "RSINFO_1_LR_R_1"
+  "POIDS03"
 )
 ```
 
@@ -67,8 +66,7 @@ new_names <- c(
   "avis_actu",
   "situa_pro",
   "niveau_etude",
-  "poids",
-  "reseaux_sociaux"
+  "poids"
 )
 ```
 
@@ -166,7 +164,9 @@ df_clean$sexe <- recode_factor(df_clean$sexe,
                                "1" = "Homme",
                                "2" = "Femme")
 ```
-
+  "avis_actu",
+  "poids",
+  "reseaux_sociaux"
 ```{r}
 df_clean$interet_info <- recode_factor(
   df_clean$interet_info,
@@ -228,9 +228,16 @@ df_clean$niveau_etude <- recode_factor(
 )
 ```
 
-
-
-
+```{r}
+df_clean$avis_actu <- recode_factor(
+  df_clean$avis_actu,
+  `1` = "Trés souvent",
+  `2` = "Souvent",
+  `3` = "De temps en temps",
+  `4` = "Rarement",
+  `5` = "Jamais",
+)
+```
 
 ```{r}
 str(df_clean)
