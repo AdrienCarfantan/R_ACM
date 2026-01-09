@@ -38,6 +38,8 @@ library(tidyverse)
 library(corrplot)
 library(cluster)
 library(patchwork)
+library(grid)
+library(gridExtra)
 ```
 <!-- base de donnée ACP-->
 ```{r}
@@ -427,7 +429,7 @@ L’utilisation conjointe de ces deux bases de données permet d’adopter une a
 
 ## 
 
-```{r}
+```{r, fig.height=4}
 fviz_pca_var(resacp, repel = TRUE) +
   labs(title = "Projection des variables sur le plan factoriel (ACP)",
        x = "Axe 1",
@@ -435,7 +437,7 @@ fviz_pca_var(resacp, repel = TRUE) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-```{r}
+```{r,fig.height=4}
 fviz_pca_ind(resacp, repel = TRUE) +
   labs(title = "Projection des individus sur le plan factoriel (ACP)",
        x = "Axe 1",
@@ -444,7 +446,7 @@ fviz_pca_ind(resacp, repel = TRUE) +
 
 ```
 
-```{r}
+```{r,fig.height=4}
 fviz_screeplot(resacp) +
   labs(title = "Diagramme des valeurs propres de l'ACP",
        x = "Axes factoriels",
@@ -538,7 +540,7 @@ Avant d'appronfondir l'étude, il est deja possible de formuler une hypothese. O
 
 ## Interprétation du plan factoriel
 
-```{r}
+```{r, fig.height=4}
 fviz_ca_biplot(res_afc,
                repel = TRUE,
                col.row = "steelblue",
@@ -572,7 +574,7 @@ graph2 <- fviz_contrib(res_afc, choice = "row", axes = 2) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-```{r}
+```{r, fig.height=3.3}
 graph1 | graph2
 ```
 
@@ -605,7 +607,7 @@ graph4 <- fviz_contrib(res_afc, choice = "col", axes = 2) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-```{r}
+```{r, fig.height=3.3}
 graph3 | graph4
 ```
 
@@ -662,6 +664,12 @@ kable(round(tab_inertie, 2),format = "latex",booktabs = TRUE,
       caption = "Valeurs propres et inertie cumulée de l’AFC") |> 
   kable_styling(latex_options = c("hold_position", "scale_down"))
 ```
+
+
+
+
+
+
 
 Les résultats montrent que la première dimension explique `r round(res_mca$eig[1,2], 2)` % de l’inertie, tandis que la deuxième en explique `r round(res_mca$eig[2,2], 2)` %. Les deux premiers axes cumulent ainsi environ `r round(res_mca$eig[2,3], 2)` % de l’information totale, ce qui est classique
 en analyse des correspondances multiples, où l’information est souvent répartie sur plusieurs dimensions étant
@@ -883,27 +891,89 @@ moins centraux mais clairement identifiables.
 
 
 ```{r}
-fviz_contrib(res_mca,
-             choice = "var",
-             axes = 1,
-             top = 15,
-             col = "#9b2242") +
+modalite1 <- fviz_contrib(res_mca,
+                          choice = "var",
+                          axes = 1,
+                          top = 15,
+                          col = "#9b2242") +
   ggtitle("Contribution des modalités à l'axe 1")
+```
+
+```{r}
+modalite2 <- fviz_contrib(res_mca,
+                          choice = "var",
+                          axes = 2,
+                          top = 15,
+                          col = "#9b2242") +
+  ggtitle("Contribution des modalités à l'axe 2")
+```
+
+```{r}
+modalite3 <- fviz_contrib(res_mca,
+                          choice = "var",
+                          axes = 3,
+                          top = 15,
+                          col = "#9b2242") +
+  ggtitle("Contribution des modalités à l'axe 3")
+```
+
+```{r}
+modalite4 <- fviz_contrib(res_mca,
+                          choice = "var",
+                          axes = 4,
+                          top = 15,
+                          col = "#9b2242") +
+  ggtitle("Contribution des modalités à l'axe 4")
+```
+
+```{r, fig.width=18, fig.height=8}
+layout <- (modalite1 | modalite2 ) / (modalite3 | modalite4)
+layout
 ```
 
 ```{r}
 contrib_dim1 <- res_mca$var$contrib[, 1]
 
-tab_contrib_dim1 <- data.frame(
-  Modalite = names(contrib_dim1),
+names(contrib_dim1) <- NULL
+```
+
+```{r}
+tab_modalites_dim1 <- data.frame(
+  Modalite = rownames(res_mca$var$contrib),
   Contrib = contrib_dim1
-) |>
+) 
+
+tab_modalites_dim1 <- tab_modalites_dim1 |>
   dplyr::arrange(desc(Contrib)) |>
   dplyr::mutate(
-    Contrib_Cum = cumsum(Contrib)
+    Contrib_cum = cumsum(Contrib)
   )
 
-tab_contrib_dim1_top <- tab_contrib_dim1[1:15, ]
+```
+
+```{r}
+tab_modalites_dim1_top <- tab_modalites_dim1[1:15, ]
+```
+
+```{r}
+tableau <- kable(tab_modalites_dim1_top,
+                 digits = 2,
+                 col.names = c("Modalité", "Contribution (%)", "Contribution cumulée (%)"),
+                 format = "latex",
+                 booktabs = TRUE
+                 ) |> 
+  kable_styling(font_size = 7)
+```
+
+```{r}
+tab_grob <- tableGrob(
+  tab_modalites_dim1_top |> 
+    dplyr::select(Modalite, Contrib, Contrib_cum),
+  rows = NULL,
+  theme = ttheme_minimal(
+    base_size = 7
+  )
+)
 ```
 
 La dimension 1 est principalement structurée par la modalité « Très facile », qui contribue à hauteur d’environ 21,5 % à la
@@ -916,10 +986,104 @@ On observe ensuite l’intervention de facteurs générationnels, avec une contr
 jeunes (≈ 9,5 %), suggérant des pratiques d’information différenciées selon l’âge. Enfin, les réseaux sociaux et plateformes vidéo
  contribuent également à la structuration de cette dimension (≈ 7,0 %), ce qui met en évidence une opposition progressive entre
 les sources d’information traditionnelles et les sources numériques dans la construction de l’opinion.
+La dimension 2 est principalement structurée par la modalité « Très difficile », qui représente à elle seule environ 22 % de la
+contribution totale à l’axe. Elle est suivie par « Plutôt facile » (≈ 14 %) et par les échanges avec les proches (famille, amis, collègues)
+ (≈ 13 %). Ces premières modalités montrent que cet axe oppose surtout des perceptions contrastées de la facilité d’accès à une information
+ fiable, en lien avec des sources plus personnelles ou informelles.
+
+On observe également une contribution notable des médias traditionnels (radio, télévision, presse) (≈ 11 %), ainsi que des différences
+ selon le sexe (hommes ≈ 8 %, femmes ≈ 6 %) et certains groupes d’âge comme les matures. Ainsi, la dimension 2 semble traduire un axe de
+perception subjective de la fiabilité de l’information, opposant un sentiment de difficulté à s’informer à des pratiques reposant
+davantage sur l’entourage ou sur des sources jugées plus accessibles.
+
+La dimension 3 est principalement structurée par la modalité « Très facile », qui contribue à environ 17 % à la construction de l’axe.
+Elle est suivie par les adultes (≈ 15 %) et les seniors (≈ 12 %), ce qui montre que cet axe met fortement en avant un profil d’individus
+pour lesquels l’accès à l’information est perçu comme simple, en particulier chez les classes d’âge plus élevées.
+
+On observe également une contribution non négligeable des médias traditionnels (radio, télévision, presse) (≈ 6 %) et des réseaux
+sociaux / plateformes vidéo (≈ 6 %), ce qui suggère que la dimension 3 distingue moins les types de sources que les profils
+sociodémographiques associés à un sentiment de facilité ou de familiarité avec l’information. Cette dimension apparaît donc comme un axe secondaire, mais pertinent, qui affine la lecture des pratiques informationnelles en complétant les oppositions mises en évidence par les deux premières dimensions.
+
+La dimension 4 est principalement structurée par la modalité « Discussions avec des inconnus (vie réelle ou Internet) », qui représente environ 26 % de la contribution totale à l’axe. Elle est suivie par la modalité « Très difficile » (≈ 17 %) et par les jeunes (≈ 12 %), ce qui indique que cet axe renvoie à une forme de distance ou de difficulté perçue dans l’accès à l’information, associée à des pratiques informationnelles moins institutionnelles et plus incertaines.
+
+Les modalités « Plutôt difficile » (≈ 8 %), les matures (≈ 7 %) et le recours aux réseaux sociaux / plateformes vidéo (≈ 5 %) viennent compléter la structuration de cet axe. À l’inverse, les modalités liées à un accès jugé facile ou aux échanges avec les proches contribuent très faiblement, suggérant que cette dimension oppose des pratiques d’information complexes et indirectes à des formes plus simples et familières, déjà bien captées par les axes précédents.
+
+L’analyse des modalités dans l’espace factoriel permet de répondre directement à la problématique du projet, en montrant que la
+manière dont les individus se forgent une opinion dépend à la fois de l’accès perçu à l’information et des sources mobilisées. Les
+premières dimensions de l’ACM sont principalement structurées par des modalités liées à la facilité ou à la difficulté à accéder à
+une information fiable, ce qui souligne que cette perception joue un rôle central dans les pratiques informationnelles.
+
+Les résultats montrent également que les types de sources ne sont pas neutres dans la construction de l’opinion. Les médias traditionnels,
+les réseaux sociaux et les échanges interpersonnels s’organisent différemment dans l’espace factoriel, traduisant des façons distinctes
+de s’informer. Ces choix de sources sont par ailleurs étroitement liés aux caractéristiques des individus, notamment à l’âge, ce qui met en
+ évidence l’existence de profils informationnels différenciés selon les générations.
+
 
 ### Rôles des variables supplémentaires
 
+Les variables supplémentaires permettent de compléter l’interprétation de l’ACM sans intervenir dans la construction des
+axes. Elles apportent un éclairage utile pour mieux comprendre les profils mis en évidence précédemment.
 
+```{r}
+fviz_mca_var(res_mca,
+             repel = TRUE,
+             col.var = "red",
+             alpha.var = 0.8,
+             labelsize = 3.5) +
+  theme(
+    plot.title = element_text(hjust = 0.5))
+```
+Sur la partie droite de la dimension 1, on observe une forte proximité entre la modalité « Très facile », les jeunes,
+les étudiants et les individus se déclarant très intéressés par l’actualité. Ce regroupement suggère un profil
+d’individus pour lesquels l’accès à l’information est perçu comme simple, fluide et naturel.
+Ces individus sont également proches des réseaux sociaux et plateformes vidéo, ce qui indique que le numérique joue un
+rôle central dans leur manière de s’informer et de construire une opinion. Il existe donc ici une corrélation claire
+entre jeunesse, intérêt pour l’actualité, usage des supports numériques et facilité perçue à s’informer.
+
+À l’opposé, sur la gauche de l’axe, se regroupent les modalités « Plutôt difficile » et « Très difficile », associées
+davantage aux seniors, aux personnes inactives (retraités, personnes au foyer) et à des niveaux d’études plus faibles.
+Ce pôle traduit un rapport plus distant à l’information, marqué par une perception de complexité et par un moindre
+engagement. Les médias traditionnels apparaissent également plus proches de ce groupe, suggérant une pratique informationnelle
+plus classique, mais aussi potentiellement moins adaptée aux formes contemporaines de circulation de l’information.
+
+La dimension 2 met davantage en évidence le degré d’intérêt pour l’actualité et les modes de socialisation de l’information.
+Les individus situés en haut de l’axe sont plus proches des modalités « Peu intéressé » ou « Pas du tout intéressé »,
+ainsi que des discussions avec des inconnus, ce qui peut traduire une relation plus diffuse ou indirecte à l’information.
+À l’inverse, les individus situés plus bas apparaissent davantage liés aux échanges avec les proches et à un intérêt
+plus affirmé, suggérant une construction de l’opinion ancrée dans des cercles sociaux familiers.
+
+Les variables supplémentaires ne créent pas de nouvelles oppositions, mais confirment et précisent la structure mise en
+évidence par les variables actives. Elles montrent que les pratiques d’information s’organisent selon des logiques
+générationnelles, scolaires et sociales, où l’âge, le niveau d’études et l’intérêt pour l’actualité jouent un rôle central.
+
+```{r}
+fviz_mca_var(res_mca,
+             axes = c(3, 4),
+             repel = TRUE,
+             col.var = "red",
+             alpha.var = 0.8,
+             labelsize = 3.5) +
+  theme(
+    plot.title = element_text(hjust = 0.5))
+```
+
+La dimension 3 est principalement structurée par l’opposition entre les discussions avec des inconnus (dans la vie réelle ou sur Internet) et les médias traditionnels (radio, télévision, presse). Cet axe semble traduire une distinction entre des formes d’accès à l’information institutionnelles et des formes plus relationnelles ou informelles.
+
+Du côté des discussions avec des inconnus, on retrouve davantage les jeunes et les étudiants, souvent associés aux réseaux sociaux et plateformes vidéo. Ce regroupement suggère un rapport à l’information plus interactif, reposant sur l’échange, la confrontation des points de vue et la circulation horizontale des contenus. L’information ne se limite plus à une transmission descendante, mais s’inscrit dans des espaces de discussion élargis.
+
+À l’inverse, les médias traditionnels apparaissent plus proches des seniors et des catégories plus éloignées des usages numériques. Cette position reflète des pratiques informationnelles plus stabilisées, fondées sur des sources reconnues et institutionnelles, mais potentiellement moins interactives.
+
+La dimension 3 met donc en évidence une pluralité des modes de construction de l’opinion, qui dépasse la simple opposition numérique / traditionnel et renvoie à des manières différentes de s’approprier l’information.
+
+La dimension 4 est davantage structurée par la perception subjective de la difficulté à se forger une opinion. On observe une opposition entre les modalités « Très facile » et « Très difficile », sans qu’elle ne corresponde à un clivage social aussi marqué que sur les axes précédents.
+
+Les individus situés du côté de la facilité perçue sont plus proches des profils jeunes, étudiants et des usages numériques, ce qui suggère une plus grande aisance dans la navigation entre les sources et dans l’évaluation de l’information. À l’inverse, les modalités associées à la difficulté apparaissent davantage liées à des profils plus âgés ou moins insérés dans les pratiques numériques contemporaines.
+
+Cependant, les recouvrements importants entre les modalités montrent que cette dimension renvoie avant tout à un ressenti individuel, influencé par l’expérience personnelle, le degré de familiarité avec l’information et les outils numériques, plutôt qu’à une opposition sociale nette.
+
+Pris ensemble, les axes 3 et 4 ne bouleversent pas la structure globale révélée par l’ACM, mais en affinent la lecture. Ils montrent que, au-delà des grandes oppositions liées à l’âge, aux sources d’information et à l’intérêt pour l’actualité, existent des différences plus subtiles dans la manière dont les individus interagissent avec l’information et évaluent leur propre capacité à se forger une opinion.
+
+Ces dimensions confirment ainsi l’idée d’un continuum de pratiques, allant d’un rapport actif, interactif et confiant à l’information, vers un rapport plus distant ou plus incertain, sans segmentation rigide de la population.
 
 
 ## Lecture synthétique et limites de l'ACM
@@ -933,11 +1097,25 @@ Habillage dimension 3 et 4
 
 # Partie IV – Clustering
 
-## 
-## 
+Afin de prolonger l’analyse factorielle des correspondances multiples, une classification des individus a été réalisée à partir des coordonnées factorielles issues de l’ACM.
+Cette démarche vise à identifier des groupes homogènes d’individus, partageant des profils similaires
+
+## Détermination du nombre optimal de cluster
+
+Le choix du nombre de clusters constitue une étape centrale de la classification. Il repose ici sur une analyse conjointe de plusieurs critères complémentaires
+
+```{r, fig.height=4}
+fviz_nbclust(sub_k, kmeans, method = "silhouette") +
+  labs(title = "Indice de silhouette – Sous-échantillon",
+       x = "Nombre de clusters (k)") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+L’indice de silhouette mesure la qualité du regroupement en comparant la proximité des individus à leur propre cluster par rapport aux autres clusters.
+Le graphique de l’indice de silhouette met en évidence un maximum pour k = 2, suggérant un découpage très naturel de la population en deux grands groupes. Toutefois, une telle partition apparaît trop grossière au regard des objectifs de l’étude, car elle ne permet pas de rendre compte de la diversité des profils observés dans les données.
 
 ```{r}
-ggplot(df_gain |>  filter(k > 1), aes(x = k, y = gain)) +
+cluster1 <- ggplot(df_gain |>  filter(k > 1), aes(x = k, y = gain)) +
   geom_col(fill = "steelblue") +
   geom_text(aes(label = round(gain, 1)), vjust = -0.5) +
   theme_minimal() +
@@ -945,23 +1123,59 @@ ggplot(df_gain |>  filter(k > 1), aes(x = k, y = gain)) +
     title = "Gain d'inertie inter-classe en fonction de k",
     x = "Nombre de clusters (k)",
     y = "Gain d'inertie inter-classe") +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(
+    text = element_text(size = 16),
+    plot.title = element_text(size = 20, hjust = 0.5),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 16))
 ```
 
 ```{r}
-fviz_nbclust(sub_k, kmeans, method = "wss") +
-  ggtitle("Méthode du coude (WSS) – Sous-échantillon") +
+cluster2 <- fviz_nbclust(sub_k, kmeans, method = "wss") +
+  labs(title = "Méthode du coude (WSS) – Sous-échantillon",
+       x = "Nombre de clusters (k)") +
   theme_minimal() +
+  theme(
+    text = element_text(size = 16),
+    plot.title = element_text(size = 20, hjust = 0.5),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 16))
+```
+
+```{r, fig.width=18, fig.height=8}
+cluster1 | cluster2
+```
+
+Le graphique du gain d’inertie inter-classe permet d’évaluer l’amélioration apportée par l’augmentation du nombre de clusters.
+On observe une augmentation marquée du gain jusqu’à k = 6, puis un ralentissement net au-delà. Cela signifie qu’à partir de ce seuil, l’ajout de clusters supplémentaires apporte une amélioration marginale limitée en termes de structuration de l’information.
+
+Ce résultat suggère l’existence d’un compromis optimal autour de six clusters, permettant de capter l’essentiel de l’hétérogénéité entre les individus sans sur-segmentation.
+
+La méthode du coude, fondée sur la somme des carrés intra-classes (WSS), confirme cette analyse.
+La courbe présente un ralentissement lorsqu'on rajoute un cluster visible au niveau de k = 6, indiquant qu’au-delà de ce nombre de clusters, la réduction de l’inertie intra-classe devient faible. Ce point correspond à un bon équilibre entre homogénéité interne des groupes et lisibilité globale de la classification.
+
+En croisant les résultats :
+
+ - de l’indice de silhouette,
+
+ - du gain d’inertie inter-classe,
+
+ - et de la méthode du coude (WSS),
+
+le choix de six clusters apparaît comme le plus pertinent.
+Il permet de dépasser une opposition trop simplifiée en deux groupes tout en conservant une structure stable, interprétable et statistiquement robuste.
+
+## Visualisation du cluster
+
+```{r, fig.height=4}
+fviz_dend(res_hcpc, cex = 0.3,
+          main = "Clustering with Ward method") +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-```{r}
-fviz_nbclust(sub_k, kmeans, method = "silhouette") +
-  ggtitle("Indice de silhouette – Sous-échantillon") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
-```
+Le dendrogramme met en évidence six branches distinctes identifiées par des codes couleurs. La ligne de coupure horizontale suggérée par cette coloration se situe à une hauteur d'environ 0.05, niveau auquel les groupes présentent une homogénéité interne forte tout en restant bien différenciés les uns des autres.
 
+On observe également que les six clusters possèdent des largeurs de base relativement comparables, ce qui suggère une répartition équilibrée de la population. Aucun groupe n'apparaît comme marginal ou démesurément large.
 
 \newpage
 
@@ -1059,8 +1273,6 @@ ellipse10 <- fviz_mca_ind(res_mca,
 layout <- (ellipse6 | ellipse7 | ellipse8) / (ellipse9 | ellipse10)
 layout
 ```
-
-\newpage
 
 # Bibliographie
 
