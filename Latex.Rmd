@@ -419,38 +419,67 @@ L’utilisation conjointe de ces deux bases de données permet d’adopter une a
 
 \newpage
 
+
+
+
 # Partie I – ACP
 
-## 
+## Objectif de notre analyse
 
+Dans un contexte où les chaînes de télévision jouent toujours un rôle central dans l’accès à l’information, il est utile de comprendre comment se structure l’offre médiatique. Les chaînes ne proposent pas toutes les mêmes types de contenus, et certaines thématiques occupent une place plus importante que d’autres selon les lignes éditoriales.
 
+Nous cherchons donc à répondre à la question suivante : comment l’offre d’information télévisée est-elle organisée selon les chaînes et les thématiques diffusées ? Pour cela, nous utilisons une analyse en composantes principales (ACP), qui permet de résumer l’information et de faire apparaître les grandes oppositions qui structurent le paysage médiatique.
 
+Explication modification de notre base de données pour réaliser analyse
 
+## Résultats de notre ACP
 
-## 
-
-```{r, fig.height=4}
-fviz_pca_var(resacp, repel = TRUE) +
-  labs(title = "Projection des variables sur le plan factoriel (ACP)",
-       x = "Axe 1",
-       y = "Axe 2") +
-  theme(plot.title = element_text(hjust = 0.5))
-```
+### Choix du plan factoriel
 
 ```{r,fig.height=4}
-fviz_pca_ind(resacp, repel = TRUE) +
-  labs(title = "Projection des individus sur le plan factoriel (ACP)",
-       x = "Axe 1",
-       y = "Axe 2") +
-  theme(plot.title = element_text(hjust = 0.5))
-
-```
-
-```{r,fig.height=4}
-fviz_screeplot(resacp) +
+screeplot <- fviz_screeplot(resacp) +
   labs(title = "Diagramme des valeurs propres de l'ACP",
        x = "Axes factoriels",
        y = "Pourcentage d'inertie") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+tab_inertie <- data.frame(
+  Axe = paste0("Axe ", seq_len(nrow(resacp$eig))),
+  `Inertie (%)` = round(resacp$eig[,2],2),
+  `Inertie cumulée (%)` = round(resacp$eig[,3],2)
+)
+```
+
+```{r}
+table_grob <- tableGrob(
+  tab_inertie,
+  rows = NULL,
+  theme = ttheme_minimal(
+    colhead = list(fg_params = list(fontface="bold", cex=0.8, hjust=0.5))))
+```
+
+```{r}
+grid.arrange(
+  screeplot,
+  table_grob,
+  ncol = 2,
+  widths = c(2,1)
+)
+```
+
+On voit que l'Axe 1 représente environ `r round(resacp$eig[1,2], 2)`% de l'inertie totale et l'Axe 2 environ `r round(resacp$eig[2,2], 2)`%.
+Les deux premiers axes concentrent donc à eux seuls plus de `r round(resacp$eig[2,3], 2)` % de l’inertie totale ce qui concentrent quasiment toute l'information. L’ACP est donc essentiellement bidimensionnelle, ce qui justifie l’analyse sur le plan (Axe 1, Axe 2).
+Les Axes 3, 4 et 5 n'ajoutent presque rien on peut donc les ignorer sans perdre d'information. Cela justifie donc parfaitement le choix de réaliser une ACP.
+
+
+### Lecture des axes à partir des chaînes télévisés
+
+```{r}
+diagramme <- fviz_pca_var(resacp, repel = TRUE) +
+  labs(x = "Axe 1",
+       y = "Axe 2") +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
@@ -470,9 +499,21 @@ schema2 <- fviz_contrib(resacp, choice = "var", axes = 2) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-```{r}
-schema1 | schema2
+```{r, fig.height=4}
+(diagramme | schema1 | schema2) +
+  plot_layout(widths = c(1, 1, 1)) +
+  plot_annotation(title = "Contributions des variables aux axes factoriels de l’ACP",
+                  theme = theme(plot.title = element_text(hjust = 0.5),
+                                plot.margin = margin(0, 0, 0, 0)))
 ```
+
+Lorsque nous regardons notre graphique qui projette les variables sur le plan factoriel nous pouvons voir que sur l'axe 1 France 2, France 3, TF1 et M6 contribuent fortement et dans la même direction tandis que Arte contribue aussi mais plus faiblement et plus à part. Cette axe semble opposé Arte aux chaînes généralistes. L'Axe 2 est presque entièrement porté par Arte, seul M6 et TF1 contribuent très faiblement. Les tableaux de valeurs des contributions confirment bien notre analyse, nous voyons que sur l'Axe 1 les chaînes
+généralistes contribuent tous à plus de 20% chacune à expliquer l'axe, et que l'Axe 2 la chaîne Arte contribue à plus de 80% à expliquer l'axe.
+On en déduit que l'Axe 2 contribue surtout à isoler la chaîne Arte.
+
+Cette partie de notre analyse ici semble donc nous permettre de distinguer une opposition entre les chaînes généralistes et de l'autre côté les chaînes plus spécialisées et culturelles comme Arte.
+
+### Organisation des thématiques
 
 ```{r}
 schema3 <- fviz_contrib(resacp, choice = "ind", axes = 1) +
@@ -494,6 +535,16 @@ schema4 <- fviz_contrib(resacp, choice = "ind", axes = 2) +
 schema3 | schema4
 ```
 
+
+Le premier axe est largement dominé par les thématiques Société (environ 45 %) et International (environ 22 %), ce qui montre qu’il oppose principalement des contenus très médiatisés et généralistes à des thématiques plus spécialisées comme l’éducation, les sciences, l’environnement ou l’histoire. Cet axe montre donc bien une opposition entre une information tournée vers le grand public et des contenus plus structurés et informatifs. Le second axe lui est encore plus fortement porté par la thématique International (près de 68 %), suivie de Société (environ 20 %). La projection des thématiques sur le plan factoriel confirme cette lecture : les thématiques International et Société occupent des positions extrêmes et organisent l’ensemble de l’espace, tandis que les autres thématiques se répartissent autour selon leur proximité à ces deux pôles.
+
+## Synthèse et sens de notre ACP
+
+L’ACP permet de mieux comprendre comment s’organise l’offre d’information des principales chaînes de télévision. On voit que quelques grandes thématiques, en particulier la société et l’international, jouent un rôle central dans la structuration de l’espace médiatique. Ce sont elles qui expliquent l’essentiel des différences observées entre les chaînes.
+
+Les résultats montrent aussi que TF1, France 2, France 3 et M6 ont des profils très proches : elles proposent globalement le même type d’information, centrée sur l’actualité grand public. En revanche, Arte se distingue clairement, avec une programmation davantage orientée vers des contenus culturels, internationaux et plus analytiques.
+
+Dans l’ensemble, cette ACP met en évidence un paysage médiatique assez homogène, mais avec une chaîne qui occupe une place à part. Elle permet donc de mieux situer le cadre dans lequel les individus vont ensuite s’informer et se forger une opinion.
 
 
 \newpage
@@ -637,10 +688,8 @@ l’information, en fonction de leurs pratiques informationnelles et de leur per
 l’information, tout en tenant compte de certaines caractéristiques sociodémographiques. L’objectif est d’observer
 les principales oppositions et similarités entre individus à partir de leurs réponses à l’enquête.
 
-Pour répondre à cette question, nous utilisons une Analyse des Correspondances Multiples (ACM) appliquée aux
-données de l’enquête « Les Français et l’information » menée par l’ARCOM. Cette méthode permet d’analyser simultanément
-plusieurs variables qualitatives et de mettre en évidence les axes principaux qui structurent les pratiques et
-perceptions de l’information, ainsi que la position des individus dans cet espace.
+Pour répondre à cette question, nous utilisons une Analyse des Correspondances Multiples (ACM) appliquée aux données de l’enquête « Les Français et l’information » menée par l’ARCOM. Cette méthode permet d’analyser simultanément
+plusieurs variables qualitatives et de mettre en évidence les axes principaux qui structurent les pratiques et perceptions de l’information, ainsi que la position des individus dans cet espace.
 
 ## Présentation du cadre et des variables utilisés
 
@@ -671,14 +720,8 @@ kable(round(tab_inertie, 2),format = "latex",booktabs = TRUE,
 
 
 
-Les résultats montrent que la première dimension explique `r round(res_mca$eig[1,2], 2)` % de l’inertie, tandis que la deuxième en explique `r round(res_mca$eig[2,2], 2)` %. Les deux premiers axes cumulent ainsi environ `r round(res_mca$eig[2,3], 2)` % de l’information totale, ce qui est classique
-en analyse des correspondances multiples, où l’information est souvent répartie sur plusieurs dimensions étant
-donné qu'il y a beaucoup de modalités. La décroissance est progressive, sans coude net, donc même si les deux premiers
-axes restent centraux pour la lecture globale, les dimensions suivantes présentent également des parts d’inertie non
-négligeables. Il apparaît donc pertinent de ne pas se limiter aux deux premiers axes et de prendre en compte d’autres
-dimensions afin d’affiner l’interprétation de la structure des données.
-Nous allons donc porter notre analyse sur les axes 1 et 2 mais également 3 et 4 pour ne pas manquer de capter des
-informations dans notre analyse.
+Les résultats montrent que la première dimension explique `r round(res_mca$eig[1,2], 2)` % de l’inertie, tandis que la deuxième en explique `r round(res_mca$eig[2,2], 2)` %. Les deux premiers axes cumulent ainsi environ `r round(res_mca$eig[2,3], 2)` % de l’information totale, ce qui est classique en analyse des correspondances multiples, où l’information est souvent répartie sur plusieurs dimensions étant donné qu'il y a beaucoup de modalités. La décroissance est progressive, sans coude net, donc même si les deux premiers axes restent centraux pour la lecture globale, les dimensions suivantes présentent également des parts d’inertie non négligeables. Il apparaît donc pertinent de ne pas se limiter aux deux premiers axes et de prendre en compte d’autres dimensions afin d’affiner l’interprétation de la structure des données.
+Nous allons donc porter notre analyse sur les axes 1 et 2 mais également 3 et 4 pour ne pas manquer de capter des informations dans notre analyse.
 
 ### Structure du nuage des individus
 
@@ -718,16 +761,9 @@ nuage2 <- fviz_mca_ind(res_mca,
 nuage1 | nuage2
 ```
 
-On observe un nuage de point relativement dense autour de l'origine, ce qui indique que la majorité des individus présentent
-des profils assez proches et similaires au regard des variables retenues. On ne distingue pas de groupes distincts pour l'instant.
-La dimension 1 montre une dispersion plus importante vers la droite, on remarque que certains individus sont clairement éloignés
-du centre de cette axe ce qui montre que nous avons des profils plus spécifiques. La dimension 2 nous montre une dispersion verticale plus limitée,
-cette dimension affine les profils sans créer de rupture franche entre les individus. Donc le nuage ne présente ni clusters évidents ni
-séparation franche, la structure propose une diversité progressive des profils plutôt qu'une segmentation nette. L'analyse des
-catégories et des variables supplémentaires est donc indispensable pour donner du sens au position des individus.
+On observe un nuage de point relativement dense autour de l'origine, ce qui indique que la majorité des individus présentent des profils assez proches et similaires au regard des variables retenues. On ne distingue pas de groupes distincts pour l'instant.
+La dimension 1 montre une dispersion plus importante vers la droite, on remarque que certains individus sont clairement éloignés du centre de cette axe ce qui montre que nous avons des profils plus spécifiques. La dimension 2 nous montre une dispersion verticale plus limitée, cette dimension affine les profils sans créer de rupture franche entre les individus. Donc le nuage ne présente ni clusters évidents ni séparation franche, la structure propose une diversité progressive des profils plutôt qu'une segmentation nette. L'analyse des catégories et des variables supplémentaires est donc indispensable pour donner du sens au position des individus.
 La projection des individus sur les dimensions 3 et 4 ne fait pas apparaître de structuration nouvelle du nuage. Comme sur le premier plan factoriel, les individus restent majoritairement concentrés autour de l’origine, ce qui confirme que ces axes apportent des informations complémentaires sans remettre en cause l’organisation générale observée.
-
-Code R pour les habillages avec ellipse de dimensions 1 et 2 par catégories (placé 3 graphiques sur une ligne et deux en dessous)
 
 ```{r}
 ellipse1 <- fviz_mca_ind(res_mca,
@@ -813,21 +849,12 @@ layout <- (ellipse1 | ellipse2 | ellipse3) / (ellipse4 | ellipse5)
 layout
 ```
 
-Les ellipses associées aux hommes et aux femmes se recouvrent largement, cela indique une forte proximité des profils
-informationnels selon le sexe. On observe toutefois une légère tendance des hommes à se projeter davantage du côté positif
-de la dimension 1.
-Les catégories d’âge présentent des positions différenciées sur la dimension 1, avec les jeunes et les adultes davantage situés
-à droite, tandis que les seniors sont plus concentrés à gauche. On observe malgré tout un recouvrement important des ellipses qui traduit
-une continuité des profils plutôt qu'une rupture générationnelle.
+Les ellipses associées aux hommes et aux femmes se recouvrent largement, cela indique une forte proximité des profils informationnels selon le sexe. On observe toutefois une légère tendance des hommes à se projeter davantage du côté positif de la dimension 1.
+Les catégories d’âge présentent des positions différenciées sur la dimension 1, avec les jeunes et les adultes davantage situés à droite, tandis que les seniors sont plus concentrés à gauche. On observe malgré tout un recouvrement important des ellipses qui traduit une continuité des profils plutôt qu'une rupture générationnelle.
 Les individus ayant des avis contrastés sur l’actualité occupent des zones partiellement distinctes, notamment sur la dimension 1. Toutefois, l’interpénétration des groupes montre que le degré d’avis personnel ne suffit pas à structurer fortement l’espace des individus.
-Une opposition plus lisible apparaît entre les individus déclarant un accès « très facile » à une information fiable,
-plutôt situés à droite, et ceux déclarant un accès « difficile », davantage positionnés à gauche. On remarque également une distinction
-sur la dimension 2, on voit que les individus qui ont accès a une info fiable facilement sont plutôt situé en bas, alors que
-à l'inverse pour un accès difficile ils sont plutôt situé en haut.
+Une opposition plus lisible apparaît entre les individus déclarant un accès « très facile » à une information fiable, plutôt situés à droite, et ceux déclarant un accès « difficile », davantage positionnés à gauche. On remarque également une distinction sur la dimension 2, on voit que les individus qui ont accès a une info fiable facilement sont plutôt situé en bas, alors que à l'inverse pour un accès difficile ils sont plutôt situé en haut.
 Pour notre dernier habillage on ne distingue pas tellement de séparation encore les ellipses sont partiellement superposés.
-Les représentations avec habillage confirment l’absence de segmentation nette du nuage des individus. Elles mettent toutefois
-en évidence des tendances de positionnement associées à l’âge, à l’accès à une information fiable et aux pratiques informationnelles,
-suggérant l’existence de profils différenciés mais non strictement séparés.
+Les représentations avec habillage confirment l’absence de segmentation nette du nuage des individus. Elles mettent toutefois en évidence des tendances de positionnement associées à l’âge, à l’accès à une information fiable et aux pratiques informationnelles, suggérant l’existence de profils différenciés mais non strictement séparés.
 
 ### Organisation des modalités dans l'espace factoriel
 
@@ -866,29 +893,14 @@ nuage4 <- fviz_mca_var(res_mca,
 (nuage3 + coord_equal()) | (nuage4 + coord_equal())
 ```
 
-L’analyse des modalités sur les premiers plans factoriels permet de mieux comprendre la manière dont les individus se positionnent
-face à l’information et aux sources qu’ils mobilisent pour se forger une opinion.
+L’analyse des modalités sur les premiers plans factoriels permet de mieux comprendre la manière dont les individus se positionnent face à l’information et aux sources qu’ils mobilisent pour se forger une opinion.
 
-Sur le plan formé par les dimensions 1 et 2, la dimension 1 oppose clairement deux grands profils. D’un côté, on observe
-les individus qui déclarent qu’il est très facile d’accéder à une information fiable et qui s’appuient davantage sur les
-réseaux sociaux et plateformes vidéo pour construire leur opinion. Ces modalités sont principalement associées aux jeunes,
-ce qui traduit une plus grande aisance avec les supports numériques et une perception plus fluide de l’accès à l’information.
-À l’inverse, l’autre côté de l’axe regroupe davantage les seniors et les matures, ainsi que le recours aux médias traditionnels
-(radio, télévision, presse). Ces modalités sont associées à une perception plus nuancée, voire plus difficile, de l’accès à
-l’information fiable, suggérant un rapport plus prudent et institutionnel à l’actualité.
+Sur le plan formé par les dimensions 1 et 2, la dimension 1 oppose clairement deux grands profils. D’un côté, on observe les individus qui déclarent qu’il est très facile d’accéder à une information fiable et qui s’appuient davantage sur les réseaux sociaux et plateformes vidéo pour construire leur opinion. Ces modalités sont principalement associées aux jeunes, ce qui traduit une plus grande aisance avec les supports numériques et une perception plus fluide de l’accès à l’information.
+À l’inverse, l’autre côté de l’axe regroupe davantage les seniors et les matures, ainsi que le recours aux médias traditionnels (radio, télévision, presse). Ces modalités sont associées à une perception plus nuancée, voire plus difficile, de l’accès à l’information fiable, suggérant un rapport plus prudent et institutionnel à l’actualité.
 
-La dimension 2 apporte un éclairage complémentaire en mettant en avant la question de la difficulté perçue dans l’accès à
-une information fiable. Les modalités « Très difficile » et le recours aux échanges avec les proches (famille, amis, collègues)
-apparaissent proches, indiquant que lorsque l’information est perçue comme complexe ou incertaine, les individus ont tendance
-à s’appuyer davantage sur leur entourage pour se forger une opinion. À l’inverse, les discussions avec des inconnus, dans la
-vie réelle ou sur Internet, se distinguent, traduisant une autre manière de confronter les points de vue et l’information.
+La dimension 2 apporte un éclairage complémentaire en mettant en avant la question de la difficulté perçue dans l’accès à une information fiable. Les modalités « Très difficile » et le recours aux échanges avec les proches (famille, amis, collègues) apparaissent proches, indiquant que lorsque l’information est perçue comme complexe ou incertaine, les individus ont tendance à s’appuyer davantage sur leur entourage pour se forger une opinion. À l’inverse, les discussions avec des inconnus, dans la vie réelle ou sur Internet, se distinguent, traduisant une autre manière de confronter les points de vue et l’information.
 
-Les dimensions 3 et 4, bien que secondaires, confirment ces tendances générales. La dimension 3 renforce notamment le clivage
-générationnel déjà observé, avec une opposition entre les jeunes, plus proches des réseaux sociaux, et les profils plus âgés,
-davantage associés aux médias traditionnels. La dimension 4 met en évidence des modalités plus spécifiques, comme la perception
-d’un accès très difficile à l’information ou le recours aux discussions avec des inconnus, qui correspondent à des profils
-moins centraux mais clairement identifiables.
-
+Les dimensions 3 et 4, bien que secondaires, confirment ces tendances générales. La dimension 3 renforce notamment le clivage générationnel déjà observé, avec une opposition entre les jeunes, plus proches des réseaux sociaux, et les profils plus âgés, davantage associés aux médias traditionnels. La dimension 4 met en évidence des modalités plus spécifiques, comme la perception d’un accès très difficile à l’information ou le recours aux discussions avec des inconnus, qui correspondent à des profils moins centraux mais clairement identifiables.
 
 ```{r}
 modalite1 <- fviz_contrib(res_mca,
@@ -976,53 +988,30 @@ tab_grob <- tableGrob(
 )
 ```
 
-La dimension 1 est principalement structurée par la modalité « Très facile », qui contribue à hauteur d’environ 21,5 % à la
-construction de l’axe. Cette modalité est fortement liée au fait de s’informer à partir des grands médias (radio, télévision, presse),
-lesquels représentent eux aussi une contribution importante (≈ 21,4 %). À eux deux, ces éléments expliquent plus de 42 % de l’inertie
- de l’axe, ce qui indique que cette première dimension reflète avant tout un rapport simple et institutionnalisé à l’information,
- perçue comme facilement accessible pour se forger une opinion.
+La dimension 1 est principalement structurée par la modalité « Très facile », qui contribue à hauteur d’environ 21,5 % à la construction de l’axe. Cette modalité est fortement liée au fait de s’informer à partir des grands médias (radio, télévision, presse), lesquels représentent eux aussi une contribution importante (≈ 21,4 %). À eux deux, ces éléments expliquent plus de 42 % de l’inertie de l’axe, ce qui indique que cette première dimension reflète avant tout un rapport simple et institutionnalisé à l’information, perçue comme facilement accessible pour se forger une opinion.
 
-On observe ensuite l’intervention de facteurs générationnels, avec une contribution non négligeable des seniors (≈ 10,6 %) et des
-jeunes (≈ 9,5 %), suggérant des pratiques d’information différenciées selon l’âge. Enfin, les réseaux sociaux et plateformes vidéo
- contribuent également à la structuration de cette dimension (≈ 7,0 %), ce qui met en évidence une opposition progressive entre
-les sources d’information traditionnelles et les sources numériques dans la construction de l’opinion.
-La dimension 2 est principalement structurée par la modalité « Très difficile », qui représente à elle seule environ 22 % de la
-contribution totale à l’axe. Elle est suivie par « Plutôt facile » (≈ 14 %) et par les échanges avec les proches (famille, amis, collègues)
- (≈ 13 %). Ces premières modalités montrent que cet axe oppose surtout des perceptions contrastées de la facilité d’accès à une information
- fiable, en lien avec des sources plus personnelles ou informelles.
+On observe ensuite l’intervention de facteurs générationnels, avec une contribution non négligeable des seniors (≈ 10,6 %) et des jeunes (≈ 9,5 %), suggérant des pratiques d’information différenciées selon l’âge. Enfin, les réseaux sociaux et plateformes vidéo contribuent également à la structuration de cette dimension (≈ 7,0 %), ce qui met en évidence une opposition progressive entre les sources d’information traditionnelles et les sources numériques dans la construction de l’opinion.
+La dimension 2 est principalement structurée par la modalité « Très difficile », qui représente à elle seule environ 22 % de la contribution totale à l’axe. Elle est suivie par « Plutôt facile » (≈ 14 %) et par les échanges avec les proches (famille, amis, collègues) (≈ 13 %). Ces premières modalités montrent que cet axe oppose surtout des perceptions contrastées de la facilité d’accès à une information fiable, en lien avec des sources plus personnelles ou informelles.
 
-On observe également une contribution notable des médias traditionnels (radio, télévision, presse) (≈ 11 %), ainsi que des différences
- selon le sexe (hommes ≈ 8 %, femmes ≈ 6 %) et certains groupes d’âge comme les matures. Ainsi, la dimension 2 semble traduire un axe de
-perception subjective de la fiabilité de l’information, opposant un sentiment de difficulté à s’informer à des pratiques reposant
-davantage sur l’entourage ou sur des sources jugées plus accessibles.
+On observe également une contribution notable des médias traditionnels (radio, télévision, presse) (≈ 11 %), ainsi que des différences selon le sexe (hommes ≈ 8 %, femmes ≈ 6 %) et certains groupes d’âge comme les matures. Ainsi, la dimension 2 semble traduire un axe de perception subjective de la fiabilité de l’information, opposant un sentiment de difficulté à s’informer à des pratiques reposant davantage sur l’entourage ou sur des sources jugées plus accessibles.
 
 La dimension 3 est principalement structurée par la modalité « Très facile », qui contribue à environ 17 % à la construction de l’axe.
-Elle est suivie par les adultes (≈ 15 %) et les seniors (≈ 12 %), ce qui montre que cet axe met fortement en avant un profil d’individus
-pour lesquels l’accès à l’information est perçu comme simple, en particulier chez les classes d’âge plus élevées.
+Elle est suivie par les adultes (≈ 15 %) et les seniors (≈ 12 %), ce qui montre que cet axe met fortement en avant un profil d’individus pour lesquels l’accès à l’information est perçu comme simple, en particulier chez les classes d’âge plus élevées.
 
-On observe également une contribution non négligeable des médias traditionnels (radio, télévision, presse) (≈ 6 %) et des réseaux
-sociaux / plateformes vidéo (≈ 6 %), ce qui suggère que la dimension 3 distingue moins les types de sources que les profils
-sociodémographiques associés à un sentiment de facilité ou de familiarité avec l’information. Cette dimension apparaît donc comme un axe secondaire, mais pertinent, qui affine la lecture des pratiques informationnelles en complétant les oppositions mises en évidence par les deux premières dimensions.
+On observe également une contribution non négligeable des médias traditionnels (radio, télévision, presse) (≈ 6 %) et des réseaux sociaux / plateformes vidéo (≈ 6 %), ce qui suggère que la dimension 3 distingue moins les types de sources que les profils sociodémographiques associés à un sentiment de facilité ou de familiarité avec l’information. Cette dimension apparaît donc comme un axe secondaire, mais pertinent, qui affine la lecture des pratiques informationnelles en complétant les oppositions mises en évidence par les deux premières dimensions.
 
 La dimension 4 est principalement structurée par la modalité « Discussions avec des inconnus (vie réelle ou Internet) », qui représente environ 26 % de la contribution totale à l’axe. Elle est suivie par la modalité « Très difficile » (≈ 17 %) et par les jeunes (≈ 12 %), ce qui indique que cet axe renvoie à une forme de distance ou de difficulté perçue dans l’accès à l’information, associée à des pratiques informationnelles moins institutionnelles et plus incertaines.
 
 Les modalités « Plutôt difficile » (≈ 8 %), les matures (≈ 7 %) et le recours aux réseaux sociaux / plateformes vidéo (≈ 5 %) viennent compléter la structuration de cet axe. À l’inverse, les modalités liées à un accès jugé facile ou aux échanges avec les proches contribuent très faiblement, suggérant que cette dimension oppose des pratiques d’information complexes et indirectes à des formes plus simples et familières, déjà bien captées par les axes précédents.
 
-L’analyse des modalités dans l’espace factoriel permet de répondre directement à la problématique du projet, en montrant que la
-manière dont les individus se forgent une opinion dépend à la fois de l’accès perçu à l’information et des sources mobilisées. Les
-premières dimensions de l’ACM sont principalement structurées par des modalités liées à la facilité ou à la difficulté à accéder à
-une information fiable, ce qui souligne que cette perception joue un rôle central dans les pratiques informationnelles.
+L’analyse des modalités dans l’espace factoriel permet de répondre directement à la problématique du projet, en montrant que la manière dont les individus se forgent une opinion dépend à la fois de l’accès perçu à l’information et des sources mobilisées. Les premières dimensions de l’ACM sont principalement structurées par des modalités liées à la facilité ou à la difficulté à accéder à une information fiable, ce qui souligne que cette perception joue un rôle central dans les pratiques informationnelles.
 
-Les résultats montrent également que les types de sources ne sont pas neutres dans la construction de l’opinion. Les médias traditionnels,
-les réseaux sociaux et les échanges interpersonnels s’organisent différemment dans l’espace factoriel, traduisant des façons distinctes
-de s’informer. Ces choix de sources sont par ailleurs étroitement liés aux caractéristiques des individus, notamment à l’âge, ce qui met en
- évidence l’existence de profils informationnels différenciés selon les générations.
+Les résultats montrent également que les types de sources ne sont pas neutres dans la construction de l’opinion. Les médias traditionnels, les réseaux sociaux et les échanges interpersonnels s’organisent différemment dans l’espace factoriel, traduisant des façons distinctes de s’informer. Ces choix de sources sont par ailleurs étroitement liés aux caractéristiques des individus, notamment à l’âge, ce qui met en évidence l’existence de profils informationnels différenciés selon les générations.
 
 
 ### Rôles des variables supplémentaires
 
-Les variables supplémentaires permettent de compléter l’interprétation de l’ACM sans intervenir dans la construction des
-axes. Elles apportent un éclairage utile pour mieux comprendre les profils mis en évidence précédemment.
+Les variables supplémentaires permettent de compléter l’interprétation de l’ACM sans intervenir dans la construction des axes. Elles apportent un éclairage utile pour mieux comprendre les profils mis en évidence précédemment.
 
 ```{r}
 fviz_mca_var(res_mca,
@@ -1033,28 +1022,17 @@ fviz_mca_var(res_mca,
   theme(
     plot.title = element_text(hjust = 0.5))
 ```
-Sur la partie droite de la dimension 1, on observe une forte proximité entre la modalité « Très facile », les jeunes,
-les étudiants et les individus se déclarant très intéressés par l’actualité. Ce regroupement suggère un profil
-d’individus pour lesquels l’accès à l’information est perçu comme simple, fluide et naturel.
-Ces individus sont également proches des réseaux sociaux et plateformes vidéo, ce qui indique que le numérique joue un
-rôle central dans leur manière de s’informer et de construire une opinion. Il existe donc ici une corrélation claire
-entre jeunesse, intérêt pour l’actualité, usage des supports numériques et facilité perçue à s’informer.
+Sur la partie droite de la dimension 1, on observe une forte proximité entre la modalité « Très facile », les jeunes, les étudiants et les individus se déclarant très intéressés par l’actualité. Ce regroupement suggère un profil d’individus pour lesquels l’accès à l’information est perçu comme simple, fluide et naturel.
+Ces individus sont également proches des réseaux sociaux et plateformes vidéo, ce qui indique que le numérique joue un rôle central dans leur manière de s’informer et de construire une opinion. Il existe donc ici une corrélation claire entre jeunesse, intérêt pour l’actualité, usage des supports numériques et facilité perçue à s’informer.
 
-À l’opposé, sur la gauche de l’axe, se regroupent les modalités « Plutôt difficile » et « Très difficile », associées
-davantage aux seniors, aux personnes inactives (retraités, personnes au foyer) et à des niveaux d’études plus faibles.
-Ce pôle traduit un rapport plus distant à l’information, marqué par une perception de complexité et par un moindre
-engagement. Les médias traditionnels apparaissent également plus proches de ce groupe, suggérant une pratique informationnelle
-plus classique, mais aussi potentiellement moins adaptée aux formes contemporaines de circulation de l’information.
+À l’opposé, sur la gauche de l’axe, se regroupent les modalités « Plutôt difficile » et « Très difficile », associées davantage aux seniors, aux personnes inactives (retraités, personnes au foyer) et à des niveaux d’études plus faibles.
+Ce pôle traduit un rapport plus distant à l’information, marqué par une perception de complexité et par un moindre engagement. Les médias traditionnels apparaissent également plus proches de ce groupe, suggérant une pratique informationnelle plus classique, mais aussi potentiellement moins adaptée aux formes contemporaines de circulation de l’information.
 
 La dimension 2 met davantage en évidence le degré d’intérêt pour l’actualité et les modes de socialisation de l’information.
-Les individus situés en haut de l’axe sont plus proches des modalités « Peu intéressé » ou « Pas du tout intéressé »,
-ainsi que des discussions avec des inconnus, ce qui peut traduire une relation plus diffuse ou indirecte à l’information.
-À l’inverse, les individus situés plus bas apparaissent davantage liés aux échanges avec les proches et à un intérêt
-plus affirmé, suggérant une construction de l’opinion ancrée dans des cercles sociaux familiers.
+Les individus situés en haut de l’axe sont plus proches des modalités « Peu intéressé » ou « Pas du tout intéressé », ainsi que des discussions avec des inconnus, ce qui peut traduire une relation plus diffuse ou indirecte à l’information.
+À l’inverse, les individus situés plus bas apparaissent davantage liés aux échanges avec les proches et à un intérêt plus affirmé, suggérant une construction de l’opinion ancrée dans des cercles sociaux familiers.
 
-Les variables supplémentaires ne créent pas de nouvelles oppositions, mais confirment et précisent la structure mise en
-évidence par les variables actives. Elles montrent que les pratiques d’information s’organisent selon des logiques
-générationnelles, scolaires et sociales, où l’âge, le niveau d’études et l’intérêt pour l’actualité jouent un rôle central.
+Les variables supplémentaires ne créent pas de nouvelles oppositions, mais confirment et précisent la structure mise en évidence par les variables actives. Elles montrent que les pratiques d’information s’organisent selon des logiques générationnelles, scolaires et sociales, où l’âge, le niveau d’études et l’intérêt pour l’actualité jouent un rôle central.
 
 ```{r}
 fviz_mca_var(res_mca,
