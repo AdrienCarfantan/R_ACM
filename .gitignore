@@ -4,6 +4,7 @@
 .Ruserdata
 .RDataTmp
 .RDataTmp1
+.RDataTmp2
 *.png
 *.csv
 *.xlsx

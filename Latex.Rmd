@@ -408,19 +408,15 @@ Cette approche est complétée par une classification des individus fondée sur 
 
 ## Présentation des bases de données
 
-Le travail réalisé dans ce projet repose sur l’exploitation de deux bases de données distinctes, issues d’organismes publics français, et portant toutes deux sur la thématique de l’information et des médias. Bien que différentes par leur nature et leur structure, ces bases sont complémentaires et permettent d’aborder le sujet sous deux angles : celui de la production de l’information et celui de sa réception par le public.
+Le travail réalisé dans ce projet repose sur l’exploitation de deux bases de données distinctes portant toutes deux sur la thématique de l’information et des médias. Bien que différentes par leur nature et leur structure, ces bases sont complémentaires et permettent d’aborder le sujet sous deux angles : celui de la production de l’information et celui de sa réception par le public.
 
-La première base de données est fournie par l’Institut National de l’Audiovisuel (INA). Elle recense, sur une longue période, les sujets traités dans les journaux télévisés français, en distinguant plusieurs thématiques telles que la politique, l’économie, la santé, la culture, le sport ou encore les faits divers. Chaque observation correspond à un couple date-chaîne et indique le nombre de sujets diffusés pour chaque thème. Cette base est essentiellement quantitative et se prête naturellement à une Analyse en Composantes Principales, dont l’objectif est de dégager les principales dimensions structurant la couverture médiatique des journaux télévisés.
+La première base de données est fournie par l’Institut National de l’Audiovisuel (INA). Elle recense, sur une longue période, les sujets traités dans les journaux télévisés français, en distinguant plusieurs thématiques telles que la politique, l’économie, la santé, la culture, le sport ou encore les faits divers. Chaque observation correspond à un couple date-chaîne et indique le nombre de sujets diffusés pour chaque thème. Cette base est essentiellement quantitative et se prête à une ACP, dont l’objectif est de dégager les principales dimensions structurant la couverture médiatique des journaux télévisés.
 
-La seconde base de données provient d’une enquête menée par l’ARCOM intitulée « Les Français et l’information ». Elle repose sur des données d’enquête collectées auprès d’un large échantillon de la population française et contient principalement des variables qualitatives. Ces variables décrivent à la fois des caractéristiques socio-démographiques (sexe, âge, niveau d’études, situation professionnelle) et des pratiques liées à l’information, telles que l’intérêt pour l’actualité, les sources utilisées pour se forger une opinion ou encore la perception de la fiabilité de l’information. La richesse et la diversité de ces variables rendent cette base particulièrement adaptée à des méthodes d’analyse factorielle pour données qualitatives, notamment l’Analyse des Correspondances Multiples.
+La seconde base de données provient d’une enquête menée par l’ARCOM intitulée « Les Français et l’information ». Elle repose sur des données d’enquête collectées auprès d’un large échantillon de la population française et contient principalement des variables qualitatives. Ces variables décrivent à la fois des caractéristiques socio-démographiques (sexe, âge, niveau d’études, situation professionnelle) et des pratiques liées à l’information, telles que l’intérêt pour l’actualité, les sources utilisées pour se forger une opinion ou encore la perception de la fiabilité de l’information. Les variables de cette base sont particulièrement adaptées à des méthodes d’analyse factorielle pour données qualitatives, notamment l’ACM.
 
-L’utilisation conjointe de ces deux bases de données permet d’adopter une approche globale du phénomène étudié. D’un côté, la base de l’INA offre une vision structurée des contenus informationnels diffusés par les médias audiovisuels ; de l’autre, la base de l’ARCOM permet d’analyser la manière dont ces contenus sont perçus, consommés et évalués par les individus. Ce double regard constitue un atout majeur du projet et justifie le recours à des méthodes statistiques variées afin d’exploiter au mieux l’information contenue dans les données.
-
+L’utilisation conjointe de ces deux bases de données permet d’adopter une approche globale du phénomène étudié. D’un côté, la base de l’INA offre une vision structurée des contenus informationnels diffusés par les médias audiovisuels ; de l’autre, la base de l’ARCOM permet d’analyser la manière dont ces contenus sont perçus, consommés et évalués par les individus.
 
 \newpage
-
-
-
 
 # Partie I – ACP
 
@@ -430,7 +426,7 @@ Dans un contexte où les chaînes de télévision jouent toujours un rôle centr
 
 Nous cherchons donc à répondre à la question suivante : comment l’offre d’information télévisée est-elle organisée selon les chaînes et les thématiques diffusées ? Pour cela, nous utilisons une analyse en composantes principales (ACP), qui permet de résumer l’information et de faire apparaître les grandes oppositions qui structurent le paysage médiatique.
 
-Explication modification de notre base de données pour réaliser analyse
+L’analyse portera sur la base de données de l’INA. Afin de rendre les données exploitables, nous avons gardé uniquement les données des variables chaînes de télévision, la thématique de l’émission et le nombre de programmes diffusés. Ensuite, le regroupement des programmes pour chaque couple chaîne-thème sur la période a permis l’obtention d’une vision synthétique de la base. Les données ont ensuite été restructurées sous forme de tableau de contingence, avec les thématiques en lignes et les chaînes de télévision en colonnes, permettant de continuer l’analyse.
 
 ## Résultats de notre ACP
 
@@ -476,8 +472,8 @@ Les Axes 3, 4 et 5 n'ajoutent presque rien on peut donc les ignorer sans perdre 
 
 ### Lecture des axes à partir des chaînes télévisés
 
-```{r}
-diagramme <- fviz_pca_var(resacp, repel = TRUE) +
+```{r, fig.height=3.5}
+fviz_pca_var(resacp, repel = TRUE) +
   labs(x = "Axe 1",
        y = "Axe 2") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -499,12 +495,8 @@ schema2 <- fviz_contrib(resacp, choice = "var", axes = 2) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-```{r, fig.height=4}
-(diagramme | schema1 | schema2) +
-  plot_layout(widths = c(1, 1, 1)) +
-  plot_annotation(title = "Contributions des variables aux axes factoriels de l’ACP",
-                  theme = theme(plot.title = element_text(hjust = 0.5),
-                                plot.margin = margin(0, 0, 0, 0)))
+```{r, fig.height=3.5}
+schema1 | schema2
 ```
 
 Lorsque nous regardons notre graphique qui projette les variables sur le plan factoriel nous pouvons voir que sur l'axe 1 France 2, France 3, TF1 et M6 contribuent fortement et dans la même direction tandis que Arte contribue aussi mais plus faiblement et plus à part. Cette axe semble opposé Arte aux chaînes généralistes. L'Axe 2 est presque entièrement porté par Arte, seul M6 et TF1 contribuent très faiblement. Les tableaux de valeurs des contributions confirment bien notre analyse, nous voyons que sur l'Axe 1 les chaînes
@@ -554,7 +546,7 @@ Dans l’ensemble, cette ACP met en évidence un paysage médiatique assez homog
 ## Objectif et validation statistique
 
 Afin de compléter l'analyse précédente, cette partie s'intéresse aux liens entre les catégories d'âge et le réseau social le plus utilisé pour ce faire nous allons utiliser la base de données de l'ARCOM.
-L’analyse factorielle des correspondances (AFC) constitue un outil particulièrement adapté, puisqu’elle permet d’analyser de manière synthétique et graphique la relation entre deux variables qualitatives : les classes d’âge et le réseau social le plus utilisé.
+L’analyse factorielle des correspondances (AFC) constitue un outil particulièrement adapté, puisqu’elle permet d’analyser de manière synthétique et graphique la relation entre deux variables qualitatives : les classes d’âge et le réseau social le plus utilisé. Les classes d'âge ont été retravailler afin de mieux refleter les differentes génération. Ainsi les 15-17ans represente les très jeunes, les 18-24 ans les Jeunes, les 25-34 ans les Jeunes adultes, les 35-44 ans les Adultes, les 45-59 ans les Matures, les 60-69 ans les Seniors et enfin les plus de 70 ans represente les Personne agées.
 
 Cette analyse représente une première étape dans l’étude des pratiques d’information des individus. Elle vise à identifier l'existence de logiques générationnelles dans l’usage des réseaux sociaux, qui seront ensuite approfondies dans la Partie III à l’aide d’une Analyse des Correspondances Multiples, intégrant un ensemble plus large de variables qualitatives.
 
@@ -565,12 +557,12 @@ kable(chi_tab, format = "latex",booktabs = TRUE, caption = "Résultats du test d
 kable_styling(latex_options = c("hold_position", "scale_down"))
 ```
 
-Les résultats du test montrent une statistique de χ² = 679.14 pour 48 degrés de liberté, avec une p-value inférieure à 2,3 × 10⁻¹¹².
+Les résultats du test montrent une statistique de X² = 679.14 pour 48 degrés de liberté, avec une p-value inférieure à 2,3 × 10⁻¹¹².
 L’hypothèse d’indépendance est donc rejetée, ce qui confirme l’existence d’un lien statistiquement significatif entre l’âge et l’usage des réseaux sociaux, justifiant le recours à l’AFC.
 
 ## Choix des axes et potentielle hypothese
 
-```{r, fig.height = 4}
+```{r, fig.height = 3.5}
 fviz_screeplot(res_afc) +
   labs(title = "Diagramme des valeurs propres de l'AFC",
        x = "Axes factoriels",
@@ -604,9 +596,7 @@ Les classes d’âge jeunes et très jeunes sont principalement associées à de
 
 Cette opposition est particulièrement visible pour les très jeunes (15–17 ans), proches d’Instagram, et pour les jeunes (18–24 ans), associés à TikTok, alors que les personnes âgées de plus de 70 ans apparaissent fortement liées à la modalité « aucun réseau ».
 
-Le second axe illustre des différences plus fines entre certaines classes d’âge intermédiaires.
-Il met en évidence que les variations ne se limitent pas à une opposition binaire entre jeunes et âgés : l’âge influence les préférences progressivement, avec des nuances subtiles qui ne deviennent perceptibles qu’en examinant l’ensemble des modalités. 
-Les points proches de l’origine correspondent à des comportements moyens, c’est-à-dire à des groupes d’individus dont le réseau préféré n’est pas particulièrement différencié par rapport aux autres.
+Le second axe met en lumière des différences plus fines entre les classes d’âge, notamment au sein des groupes intermédiaires. Il montre que les pratiques ne s’organisent pas uniquement autour d’une opposition simple entre jeunes et personnes âgées, mais évoluent de manière progressive selon l’âge. Certaines nuances n’apparaissent qu’en observant l’ensemble des modalités. Les individus proches de l’origine présentent des comportements dits « moyens », c’est-à-dire qu’ils ne se distinguent pas fortement par un type de réseau particulier.
 
 
 ```{r}
@@ -625,7 +615,7 @@ graph2 <- fviz_contrib(res_afc, choice = "row", axes = 2) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-```{r, fig.height=3.3}
+```{r, fig.height=3}
 graph1 | graph2
 ```
 
@@ -658,7 +648,7 @@ graph4 <- fviz_contrib(res_afc, choice = "col", axes = 2) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-```{r, fig.height=3.3}
+```{r, fig.height=3}
 graph3 | graph4
 ```
 
@@ -708,17 +698,11 @@ fviz_screeplot(res_mca,
 ```
 
 ```{r}
-tab_inertie <- t(res_mca$eig)
+tab_inertie <- t(res_mca$eig[1:10, ])
 kable(round(tab_inertie, 2),format = "latex",booktabs = TRUE,
       caption = "Valeurs propres et inertie cumulée de l’AFC") |> 
   kable_styling(latex_options = c("hold_position", "scale_down"))
 ```
-
-
-
-
-
-
 
 Les résultats montrent que la première dimension explique `r round(res_mca$eig[1,2], 2)` % de l’inertie, tandis que la deuxième en explique `r round(res_mca$eig[2,2], 2)` %. Les deux premiers axes cumulent ainsi environ `r round(res_mca$eig[2,3], 2)` % de l’information totale, ce qui est classique en analyse des correspondances multiples, où l’information est souvent répartie sur plusieurs dimensions étant donné qu'il y a beaucoup de modalités. La décroissance est progressive, sans coude net, donc même si les deux premiers axes restent centraux pour la lecture globale, les dimensions suivantes présentent également des parts d’inertie non négligeables. Il apparaît donc pertinent de ne pas se limiter aux deux premiers axes et de prendre en compte d’autres dimensions afin d’affiner l’interprétation de la structure des données.
 Nous allons donc porter notre analyse sur les axes 1 et 2 mais également 3 et 4 pour ne pas manquer de capter des informations dans notre analyse.
@@ -921,71 +905,7 @@ modalite2 <- fviz_contrib(res_mca,
 ```
 
 ```{r}
-modalite3 <- fviz_contrib(res_mca,
-                          choice = "var",
-                          axes = 3,
-                          top = 15,
-                          col = "#9b2242") +
-  ggtitle("Contribution des modalités à l'axe 3")
-```
-
-```{r}
-modalite4 <- fviz_contrib(res_mca,
-                          choice = "var",
-                          axes = 4,
-                          top = 15,
-                          col = "#9b2242") +
-  ggtitle("Contribution des modalités à l'axe 4")
-```
-
-```{r, fig.width=18, fig.height=8}
-layout <- (modalite1 | modalite2 ) / (modalite3 | modalite4)
-layout
-```
-
-```{r}
-contrib_dim1 <- res_mca$var$contrib[, 1]
-
-names(contrib_dim1) <- NULL
-```
-
-```{r}
-tab_modalites_dim1 <- data.frame(
-  Modalite = rownames(res_mca$var$contrib),
-  Contrib = contrib_dim1
-) 
-
-tab_modalites_dim1 <- tab_modalites_dim1 |>
-  dplyr::arrange(desc(Contrib)) |>
-  dplyr::mutate(
-    Contrib_cum = cumsum(Contrib)
-  )
-
-```
-
-```{r}
-tab_modalites_dim1_top <- tab_modalites_dim1[1:15, ]
-```
-
-```{r}
-tableau <- kable(tab_modalites_dim1_top,
-                 digits = 2,
-                 col.names = c("Modalité", "Contribution (%)", "Contribution cumulée (%)"),
-                 format = "latex",
-                 booktabs = TRUE
-                 ) |> 
-  kable_styling(font_size = 7)
-```
-
-```{r}
-tab_grob <- tableGrob(
-  tab_modalites_dim1_top |> 
-    dplyr::select(Modalite, Contrib, Contrib_cum),
-  rows = NULL,
-  theme = ttheme_minimal(
-    base_size = 7
-  )
-)
+modalite1 | modalite2
 ```
 
 La dimension 1 est principalement structurée par la modalité « Très facile », qui contribue à hauteur d’environ 21,5 % à la construction de l’axe. Cette modalité est fortement liée au fait de s’informer à partir des grands médias (radio, télévision, presse), lesquels représentent eux aussi une contribution importante (≈ 21,4 %). À eux deux, ces éléments expliquent plus de 42 % de l’inertie de l’axe, ce qui indique que cette première dimension reflète avant tout un rapport simple et institutionnalisé à l’information, perçue comme facilement accessible pour se forger une opinion.
@@ -1155,6 +1075,45 @@ Le dendrogramme met en évidence six branches distinctes identifiées par des co
 
 On observe également que les six clusters possèdent des largeurs de base relativement comparables, ce qui suggère une répartition équilibrée de la population. Aucun groupe n'apparaît comme marginal ou démesurément large.
 
+```{r}
+cluster3 <- fviz_cluster(res_hcpc,
+                         geom = "point",
+                         show.clust.cent = TRUE,
+                         ellipse.type = "convex",
+                         repel = TRUE,
+                         palette = "Dark2",
+                         ggtheme = theme_minimal(),
+                         alpha = 0.6) +
+  labs(title = "AAAA") +
+  theme(text = element_text(size = 16),
+        plot.title = element_text(size = 20, hjust = 0.5),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16),
+        legend.key.size = unit(1.3, "cm")) 
+```
+
+```{r}
+cluster4 <- fviz_cluster(res_hcpc,
+                         axes = c(3, 4),
+                         geom = "point",
+                         show.clust.cent = TRUE,
+                         ellipse.type = "convex",
+                         repel = TRUE,
+                         palette = "Dark2",
+                         ggtheme = theme_minimal(),
+                         alpha = 0.6) +
+  labs(title = "AAAA") +
+  theme(text = element_text(size = 16),
+        plot.title = element_text(size = 20, hjust = 0.5),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16),
+        legend.key.size = unit(1.3, "cm")) 
+```
+
+```{r, fig.width=18, fig.height=8}
+cluster3 | cluster4
+```
+
 \newpage
 
 # Conclusion générale
@@ -1251,6 +1210,29 @@ ellipse10 <- fviz_mca_ind(res_mca,
 layout <- (ellipse6 | ellipse7 | ellipse8) / (ellipse9 | ellipse10)
 layout
 ```
+
+```{r}
+modalite3 <- fviz_contrib(res_mca,
+                          choice = "var",
+                          axes = 3,
+                          top = 15,
+                          col = "#9b2242") +
+  ggtitle("Contribution des modalités à l'axe 3")
+```
+
+```{r}
+modalite4 <- fviz_contrib(res_mca,
+                          choice = "var",
+                          axes = 4,
+                          top = 15,
+                          col = "#9b2242") +
+  ggtitle("Contribution des modalités à l'axe 4")
+```
+
+```{r}
+modalite3 | modalite4
+```
+
 
 # Bibliographie
 
